@@ -1,6 +1,7 @@
 import type { AppRouteHandler } from "../../lib/types";
 import { listUsers, getUser, updateUser, deleteUser, createUser } from "./users.routes";
 import { db } from "@/db";
+import { ShiftAssignmentAutomationService } from "../shift-assignments/shift-assignments.services";
 import { staff, admins, healthcareWorkers } from "@/db/schema/tables";
 import { eq, ilike, or, sql } from "drizzle-orm";
 
@@ -251,55 +252,246 @@ export const createUserHandler: AppRouteHandler<typeof createUser> = async (c) =
     
     // Check role
     if (body.role !== "healthcare_worker" && body.role !== "admin") {
-        return c.json({ success: false, error: { code: "VALIDATION_ERROR", message: "Role must be either 'admin' or 'healthcare_worker'" } }, 400);
+        return c.json({ 
+            success: false, 
+            error: { 
+                code: "VALIDATION_ERROR", 
+                message: "Role must be either 'admin' or 'healthcare_worker'" 
+            } 
+        }, 400);
+    }
+    
+    // Validate profile data based on role
+    if (body.role === "healthcare_worker") {
+        if (!body.profile) {
+            return c.json({ 
+                success: false, 
+                error: { 
+                    code: "VALIDATION_ERROR", 
+                    message: "Profile is required for healthcare workers" 
+                } 
+            }, 400);
+        }
+        
+        // Check required fields for healthcare workers
+        const requiredFields = ['employeeId', 'specialization', 'department', 'licenseNumber'];
+        const missingFields = requiredFields.filter(field => !body.profile[field]);
+        
+        if (missingFields.length > 0) {
+            return c.json({ 
+                success: false, 
+                error: { 
+                    code: "VALIDATION_ERROR", 
+                    message: `Missing required profile fields: ${missingFields.join(', ')}` 
+                } 
+            }, 400);
+        }
+    } else if (body.role === "admin") {
+        if (!body.profile || !body.profile.department) {
+            return c.json({ 
+                success: false, 
+                error: { 
+                    code: "VALIDATION_ERROR", 
+                    message: "Department is required for admin users" 
+                } 
+            }, 400);
+        }
     }
     
     // Check if email exists
     const existing = await db.query.staff.findFirst({ where: eq(staff.email, body.email) });
     if (existing) {
-        return c.json({ success: false, error: { code: "CONFLICT", message: "Email already exists" } }, 409);
+        return c.json({ 
+            success: false, 
+            error: { 
+                code: "CONFLICT", 
+                message: "Email already exists" 
+            } 
+        }, 409);
     }
     
-    // Hash password (placeholder)
-    const passwordHash = "hashed_" + process.env.DEFAULT_USER_PASSWORD;
-    
-    // Insert staff member
-    const [newStaff] = await db.insert(staff).values({
-        name: body.name,
-        email: body.email,
-        passwordHash,
-        phone: body.phone,
-        createdAt: sql`CURRENT_TIMESTAMP`,
-        updatedAt: sql`CURRENT_TIMESTAMP`,
-    }).returning();
-    
-    // Insert role-specific profile
-    if (body.role === "healthcare_worker") {
-        await db.insert(healthcareWorkers).values({
-            userId: newStaff.staffId,
-            employeeId: body.profile.employeeId,
-            specialization: body.profile.specialization,
-            department: body.profile.department,
-            licenseNumber: body.profile.licenseNumber,
-            certification: body.profile.certification,
-            availableStart: body.profile.availableStart?.trim() ? body.profile.availableStart : null,
-            availableEnd: body.profile.availableEnd?.trim() ? body.profile.availableEnd : null,
+    try {
+        // Hash password (placeholder)
+        const passwordHash = "hashed_" + process.env.DEFAULT_USER_PASSWORD;
+        
+        // Insert staff member
+        const [newStaff] = await db.insert(staff).values({
+            name: body.name,
+            email: body.email,
+            passwordHash,
+            phone: body.phone || null,
             createdAt: sql`CURRENT_TIMESTAMP`,
-        });
-    } else if (body.role === "admin") {
-        await db.insert(admins).values({
-            userId: newStaff.staffId,
-            department: body.profile.department,
-            role: body.profile.role || "admin",
-            createdAt: sql`CURRENT_TIMESTAMP`,
-        });
-    }
-    
-    return c.json({
-        success: true,
-        data: {
-            id: newStaff.staffId,
-            message: "User created successfully"
+            updatedAt: sql`CURRENT_TIMESTAMP`,
+        }).returning();
+        
+        let workerId: number | null = null;
+        
+        // Insert role-specific profile
+        try {
+            if (body.role === "healthcare_worker") {
+                const [newWorker] = await db.insert(healthcareWorkers).values({
+                    userId: newStaff.staffId,
+                    employeeId: body.profile.employeeId,
+                    specialization: body.profile.specialization || "",
+                    department: body.profile.department || "",
+                    licenseNumber: body.profile.licenseNumber || "",
+                    certification: body.profile.certification || "",
+                    availableStart: body.profile.availableStart?.trim() ? body.profile.availableStart : null,
+                    availableEnd: body.profile.availableEnd?.trim() ? body.profile.availableEnd : null,
+                    createdAt: sql`CURRENT_TIMESTAMP`,
+                }).returning();
+                
+                workerId = newWorker.workerId;
+                
+            } else if (body.role === "admin") {
+                await db.insert(admins).values({
+                    userId: newStaff.staffId,
+                    department: body.profile.department || "",
+                    role: "admin",
+                    createdAt: sql`CURRENT_TIMESTAMP`,
+                });
+            }
+        } catch (profileError) {
+            console.error("Error creating profile:", profileError);
+            // If profile creation fails, delete the staff member to maintain consistency
+            await db.delete(staff).where(eq(staff.staffId, newStaff.staffId));
+            throw new Error(`Failed to create profile: ${profileError instanceof Error ? profileError.message : 'Unknown error'}`);
         }
-    });
+        
+        let autoAssignmentResult = null;
+        
+        // Auto-assign shifts for healthcare workers
+        if (body.role === "healthcare_worker" && workerId && body.autoAssignShifts !== false) {
+            console.log(`Starting auto-assignment for new healthcare worker ${workerId}`);
+            
+            // Get auto-assignment configuration from request or use defaults
+            const autoAssignConfig = {
+                maxShiftsPerWeek: body.autoAssignConfig?.maxShiftsPerWeek || 3, // Conservative start
+                preferredDepartments: body.profile.department ? [body.profile.department] : undefined,
+                avoidConsecutiveShifts: body.autoAssignConfig?.avoidConsecutiveShifts ?? true,
+                respectAvailability: body.autoAssignConfig?.respectAvailability ?? true,
+                prioritizeUnderstaffed: body.autoAssignConfig?.prioritizeUnderstaffed ?? true,
+                assignToSameDepartment: body.autoAssignConfig?.assignToSameDepartment ?? true,
+                lookAheadDays: body.autoAssignConfig?.lookAheadDays || 14,
+                minRestHours: body.autoAssignConfig?.minRestHours || 12
+            };
+            
+            try {
+                autoAssignmentResult = await ShiftAssignmentAutomationService.autoAssignNewWorker(
+                    workerId,
+                    autoAssignConfig
+                );
+                
+                console.log(`Auto-assignment completed for worker ${workerId}:`, autoAssignmentResult);
+                
+            } catch (autoAssignError) {
+                console.error(`Auto-assignment failed for worker ${workerId}:`, autoAssignError);
+                // Don't fail the entire user creation if auto-assignment fails
+                autoAssignmentResult = {
+                    success: false,
+                    assignedShifts: [],
+                    skippedShifts: [],
+                    message: "Auto-assignment failed but user was created successfully"
+                };
+            }
+        }
+        
+        // Prepare response
+        const response: any = {
+            success: true,
+            data: {
+                id: newStaff.staffId,
+                message: "User created successfully"
+            }
+        };
+        
+        // Include auto-assignment results if applicable
+        if (autoAssignmentResult) {
+            response.data.autoAssignment = {
+                enabled: true,
+                success: autoAssignmentResult.success,
+                assignedShifts: autoAssignmentResult.assignedShifts.length,
+                skippedShifts: autoAssignmentResult.skippedShifts.length,
+                message: autoAssignmentResult.message,
+                details: autoAssignmentResult
+            };
+        } else if (body.role === "healthcare_worker") {
+            response.data.autoAssignment = {
+                enabled: false,
+                message: "Auto-assignment was disabled for this user"
+            };
+        }
+        
+        return c.json(response);
+        
+    } catch (error) {
+        console.error("Error creating user:", error);
+        return c.json({ 
+            success: false, 
+            error: { 
+                code: "INTERNAL_ERROR", 
+                message: "Failed to create user",
+                details: error instanceof Error ? error.message : "Unknown error"
+            } 
+        }, 500);
+    }
 };
+
+
+// export const createUserHandler: AppRouteHandler<typeof createUser> = async (c) => {
+//     const body: any = await c.req.json();
+    
+//     // Check role
+//     if (body.role !== "healthcare_worker" && body.role !== "admin") {
+//         return c.json({ success: false, error: { code: "VALIDATION_ERROR", message: "Role must be either 'admin' or 'healthcare_worker'" } }, 400);
+//     }
+    
+//     // Check if email exists
+//     const existing = await db.query.staff.findFirst({ where: eq(staff.email, body.email) });
+//     if (existing) {
+//         return c.json({ success: false, error: { code: "CONFLICT", message: "Email already exists" } }, 409);
+//     }
+    
+//     // Hash password (placeholder)
+//     const passwordHash = "hashed_" + process.env.DEFAULT_USER_PASSWORD;
+    
+//     // Insert staff member
+//     const [newStaff] = await db.insert(staff).values({
+//         name: body.name,
+//         email: body.email,
+//         passwordHash,
+//         phone: body.phone,
+//         createdAt: sql`CURRENT_TIMESTAMP`,
+//         updatedAt: sql`CURRENT_TIMESTAMP`,
+//     }).returning();
+    
+//     // Insert role-specific profile
+//     if (body.role === "healthcare_worker") {
+//         await db.insert(healthcareWorkers).values({
+//             userId: newStaff.staffId,
+//             employeeId: body.profile.employeeId,
+//             specialization: body.profile.specialization,
+//             department: body.profile.department,
+//             licenseNumber: body.profile.licenseNumber,
+//             certification: body.profile.certification,
+//             availableStart: body.profile.availableStart?.trim() ? body.profile.availableStart : null,
+//             availableEnd: body.profile.availableEnd?.trim() ? body.profile.availableEnd : null,
+//             createdAt: sql`CURRENT_TIMESTAMP`,
+//         });
+//     } else if (body.role === "admin") {
+//         await db.insert(admins).values({
+//             userId: newStaff.staffId,
+//             department: body.profile.department,
+//             role: body.profile.role || "admin",
+//             createdAt: sql`CURRENT_TIMESTAMP`,
+//         });
+//     }
+    
+//     return c.json({
+//         success: true,
+//         data: {
+//             id: newStaff.staffId,
+//             message: "User created successfully"
+//         }
+//     });
+// };

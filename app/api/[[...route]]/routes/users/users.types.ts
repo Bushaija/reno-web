@@ -63,7 +63,17 @@ export const createUserRequestSchema = z.object({
     role: z.enum(["admin", "healthcare_worker"]),
     profile: userProfileSchema.extend({
         certification: z.string().optional(),
-    })
+    }),
+    autoAssignShifts: z.boolean().optional(),
+    autoAssignConfig: z.object({
+        maxShiftsPerWeek: z.number().optional(),
+        avoidConsecutiveShifts: z.boolean().optional(),
+        respectAvailability: z.boolean().optional(),
+        prioritizeUnderstaffed: z.boolean().optional(),
+        assignToSameDepartment: z.boolean().optional(),
+        lookAheadDays: z.number().optional(),
+        minRestHours: z.number().optional(),
+    }).optional(),
 });
 
 export const createUserResponseSchema = z.object({
