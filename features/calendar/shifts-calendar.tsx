@@ -19,15 +19,42 @@ const convertShiftToEvent = (shift: any): Event => {
     startISO: startDate.toISOString(),
     endISO: endDate.toISOString()
   });
+
+  // Format time for display
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  // Create a more descriptive title
+  const workerName = shift.worker?.staff?.name || `Worker ${shift.workerId}`;
+  const title = `${workerName} - ${shift.department}`;
+  
+  // Create a comprehensive description
+  const description = [
+    `Worker: ${workerName}`,
+    `Department: ${shift.department}`,
+    `Time: ${formatTime(startDate)} - ${formatTime(endDate)}`,
+    `Max Staff: ${shift.maxStaff}`,
+    `Status: ${shift.status}`,
+    shift.worker?.staff?.email && `Email: ${shift.worker.staff.email}`,
+    shift.worker?.staff?.phone && `Phone: ${shift.worker.staff.phone}`,
+    shift.worker?.specialization && `Specialization: ${shift.worker.specialization}`,
+    shift.worker?.licenseNumber && `License: ${shift.worker.licenseNumber}`,
+    shift.notes && `Notes: ${shift.notes}`,
+  ].filter(Boolean).join('\n');
   
   return {
     id: `shift-${shift.id}`, // Prefix to avoid conflicts with local events
-    title: shift.department,
+    title: title,
     startDate: startDate,
     endDate: endDate,
-    description: shift.notes || `Worker ID: ${shift.workerId}`,
+    description: description,
     variant: "primary" as const,
-    // Add shift-specific data
+    // Add comprehensive shift-specific data
     shiftData: {
       id: shift.id,
       workerId: shift.workerId,
@@ -35,6 +62,20 @@ const convertShiftToEvent = (shift: any): Event => {
       maxStaff: shift.maxStaff,
       status: shift.status,
       notes: shift.notes,
+      // Add worker information
+      worker: {
+        name: shift.worker?.staff?.name || `Worker ${shift.workerId}`,
+        email: shift.worker?.staff?.email,
+        phone: shift.worker?.staff?.phone,
+        specialization: shift.worker?.specialization,
+        licenseNumber: shift.worker?.licenseNumber,
+        certification: shift.worker?.certification,
+        employeeId: shift.worker?.employeeId,
+      },
+      // Add timing information
+      startTime: formatTime(startDate),
+      endTime: formatTime(endDate),
+      duration: `${Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60) * 10) / 10}h`,
     },
   };
 };

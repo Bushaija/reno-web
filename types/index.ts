@@ -22,6 +22,20 @@ export interface Event {
     maxStaff: number;
     status: string;
     notes?: string;
+    // Enhanced worker information
+    worker?: {
+      name: string;
+      email?: string;
+      phone?: string;
+      specialization?: string;
+      licenseNumber?: string;
+      certification?: string;
+      employeeId?: string;
+    };
+    // Enhanced timing information
+    startTime?: string;
+    endTime?: string;
+    duration?: string;
   };
 }
 

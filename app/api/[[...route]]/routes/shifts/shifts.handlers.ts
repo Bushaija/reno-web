@@ -1,7 +1,7 @@
 import type { AppRouteHandler } from "../../lib/types";
 import { listShifts, getShift, createShift, updateShift, deleteShift } from "./shifts.routes";
 import { db } from "@/db";
-import { shifts } from "@/db/schema/tables";
+import { shifts, healthcareWorkers, staff } from "@/db/schema/tables";
 import { eq, sql } from "drizzle-orm";
 
 export const getShifts: AppRouteHandler<typeof listShifts> = async (c) => {
@@ -22,8 +22,37 @@ export const getShifts: AppRouteHandler<typeof listShifts> = async (c) => {
   const totalCount = Number(total[0]?.count || 0);
   const totalPages = Math.ceil(totalCount / limitNum);
 
-  // Get paginated shifts
-  const allShifts = await db.select().from(shifts)
+  // Get paginated shifts with worker information
+  const allShifts = await db
+    .select({
+      shiftId: shifts.shiftId,
+      workerId: shifts.workerId,
+      startTime: shifts.startTime,
+      endTime: shifts.endTime,
+      department: shifts.department,
+      maxStaff: shifts.maxStaff,
+      notes: shifts.notes,
+      status: shifts.status,
+      createdAt: shifts.createdAt,
+      updatedAt: shifts.updatedAt,
+      // Worker information
+      worker_workerId: healthcareWorkers.workerId,
+      worker_employeeId: healthcareWorkers.employeeId,
+      worker_specialization: healthcareWorkers.specialization,
+      worker_licenseNumber: healthcareWorkers.licenseNumber,
+      worker_certification: healthcareWorkers.certification,
+      worker_department: healthcareWorkers.department,
+      worker_availableStart: healthcareWorkers.availableStart,
+      worker_availableEnd: healthcareWorkers.availableEnd,
+      // Staff information
+      staff_staffId: staff.staffId,
+      staff_name: staff.name,
+      staff_email: staff.email,
+      staff_phone: staff.phone,
+    })
+    .from(shifts)
+    .innerJoin(healthcareWorkers, eq(shifts.workerId, healthcareWorkers.workerId))
+    .innerJoin(staff, eq(healthcareWorkers.userId, staff.staffId))
     .where(where.length ? sql`${where.join(" AND ")}` : undefined)
     .limit(limitNum)
     .offset(offset);
@@ -39,6 +68,22 @@ export const getShifts: AppRouteHandler<typeof listShifts> = async (c) => {
     status: shift.status,
     createdAt: shift.createdAt,
     updatedAt: shift.updatedAt,
+    worker: {
+      workerId: shift.worker_workerId,
+      employeeId: shift.worker_employeeId,
+      specialization: shift.worker_specialization,
+      licenseNumber: shift.worker_licenseNumber,
+      certification: shift.worker_certification,
+      department: shift.worker_department,
+      availableStart: shift.worker_availableStart,
+      availableEnd: shift.worker_availableEnd,
+      staff: {
+        staffId: shift.staff_staffId,
+        name: shift.staff_name,
+        email: shift.staff_email,
+        phone: shift.staff_phone,
+      },
+    },
   }));
 
   return c.json({
@@ -67,7 +112,37 @@ export const getShiftHandler: AppRouteHandler<typeof getShift> = async (c) => {
   }
 
   try {
-    const shift = await db.select().from(shifts).where(eq(shifts.shiftId, shiftId));
+    const shift = await db
+      .select({
+        shiftId: shifts.shiftId,
+        workerId: shifts.workerId,
+        startTime: shifts.startTime,
+        endTime: shifts.endTime,
+        department: shifts.department,
+        maxStaff: shifts.maxStaff,
+        notes: shifts.notes,
+        status: shifts.status,
+        createdAt: shifts.createdAt,
+        updatedAt: shifts.updatedAt,
+        // Worker information
+        worker_workerId: healthcareWorkers.workerId,
+        worker_employeeId: healthcareWorkers.employeeId,
+        worker_specialization: healthcareWorkers.specialization,
+        worker_licenseNumber: healthcareWorkers.licenseNumber,
+        worker_certification: healthcareWorkers.certification,
+        worker_department: healthcareWorkers.department,
+        worker_availableStart: healthcareWorkers.availableStart,
+        worker_availableEnd: healthcareWorkers.availableEnd,
+        // Staff information
+        staff_staffId: staff.staffId,
+        staff_name: staff.name,
+        staff_email: staff.email,
+        staff_phone: staff.phone,
+      })
+      .from(shifts)
+      .innerJoin(healthcareWorkers, eq(shifts.workerId, healthcareWorkers.workerId))
+      .innerJoin(staff, eq(healthcareWorkers.userId, staff.staffId))
+      .where(eq(shifts.shiftId, shiftId));
     
     if (shift.length === 0) {
       return c.json({ 
@@ -87,6 +162,22 @@ export const getShiftHandler: AppRouteHandler<typeof getShift> = async (c) => {
       status: shift[0].status,
       createdAt: shift[0].createdAt,
       updatedAt: shift[0].updatedAt,
+      worker: {
+        workerId: shift[0].worker_workerId,
+        employeeId: shift[0].worker_employeeId,
+        specialization: shift[0].worker_specialization,
+        licenseNumber: shift[0].worker_licenseNumber,
+        certification: shift[0].worker_certification,
+        department: shift[0].worker_department,
+        availableStart: shift[0].worker_availableStart,
+        availableEnd: shift[0].worker_availableEnd,
+        staff: {
+          staffId: shift[0].staff_staffId,
+          name: shift[0].staff_name,
+          email: shift[0].staff_email,
+          phone: shift[0].staff_phone,
+        },
+      },
     };
 
     return c.json({

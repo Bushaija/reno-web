@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useModal } from "@/providers/modal-context";
 import AddEventModal from "@/components/schedule/_modals/add-event-modal";
 import { Event, CustomEventModal } from "@/types";
-import { TrashIcon, CalendarIcon, ClockIcon, UserIcon, BuildingIcon } from "lucide-react";
+import { TrashIcon, CalendarIcon, ClockIcon, UserIcon, BuildingIcon, MailIcon, PhoneIcon, BadgeIcon, FileTextIcon } from "lucide-react";
 import { useScheduler } from "@/providers/schedular-provider";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -190,10 +190,16 @@ export default function EventStyled({
               {event?.title || "Untitled Event"}
             </div>
             
-            {/* Show time in minimized mode */}
+            {/* Show enhanced information in minimized mode */}
             {event?.minmized && (
-              <div className="text-[10px] opacity-80">
-                {formatTime(event?.startDate)}
+              <div className="text-[10px] opacity-80 space-y-1">
+                <div>{formatTime(event?.startDate)}</div>
+                {isShiftEvent && event.shiftData?.worker?.name && (
+                  <div className="truncate">{event.shiftData.worker.name}</div>
+                )}
+                {isShiftEvent && event.shiftData?.department && (
+                  <div className="truncate">{event.shiftData.department}</div>
+                )}
               </div>
             )}
             
@@ -204,27 +210,87 @@ export default function EventStyled({
             {/* Show shift-specific information */}
             {!event?.minmized && isShiftEvent && event.shiftData && (
               <div className="text-xs space-y-1 mt-2">
+                {/* Worker Information */}
+                {event.shiftData.worker && (
+                  <div className="space-y-1">
+                    <div className="flex items-center">
+                      <UserIcon className="mr-1 h-3 w-3" />
+                      <span className="font-medium">{event.shiftData.worker.name}</span>
+                    </div>
+                    {event.shiftData.worker.employeeId && (
+                      <div className="flex items-center text-[10px] opacity-80">
+                        <span>ID: {event.shiftData.worker.employeeId}</span>
+                      </div>
+                    )}
+                    {event.shiftData.worker.specialization && (
+                      <div className="flex items-center text-[10px] opacity-80">
+                        <span>Specialization: {event.shiftData.worker.specialization}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Department and Staffing */}
                 <div className="flex items-center">
                   <BuildingIcon className="mr-1 h-3 w-3" />
-                  <span className="font-medium">Dept: {event.shiftData.department}</span>
+                  <span className="font-medium">{event.shiftData.department}</span>
                 </div>
-                <div className="flex items-center">
-                  <UserIcon className="mr-1 h-3 w-3" />
-                  <span>Worker ID: {event.shiftData.workerId}</span>
+                <div className="flex items-center text-[10px] opacity-80">
+                  <span>Max Staff: {event.shiftData.maxStaff}</span>
                 </div>
-                <div className="flex items-center">
-                  <CalendarIcon className="mr-1 h-3 w-3" />
-                  {formatDate(event?.startDate)}
-                </div>
-                <div className="flex items-center">
-                  <ClockIcon className="mr-1 h-3 w-3" />
-                  {formatDate(event?.endDate)}
-                </div>
-                {event.shiftData.status && (
-                  <Badge variant="outline" className="text-xs mt-1">
-                    {event.shiftData.status}
-                  </Badge>
+                
+                {/* Timing Information */}
+                {event.shiftData.startTime && event.shiftData.endTime && (
+                  <div className="space-y-1">
+                    <div className="flex items-center">
+                      <ClockIcon className="mr-1 h-3 w-3" />
+                      <span>{event.shiftData.startTime} - {event.shiftData.endTime}</span>
+                    </div>
+                    {event.shiftData.duration && (
+                      <div className="flex items-center text-[10px] opacity-80">
+                        <span>Duration: {event.shiftData.duration}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
+                
+                {/* Contact Information */}
+                {event.shiftData.worker && (
+                  <div className="space-y-1">
+                    {event.shiftData.worker.email && (
+                      <div className="flex items-center text-[10px] opacity-80">
+                        <MailIcon className="mr-1 h-3 w-3" />
+                        <span className="truncate">{event.shiftData.worker.email}</span>
+                      </div>
+                    )}
+                    {event.shiftData.worker.phone && (
+                      <div className="flex items-center text-[10px] opacity-80">
+                        <PhoneIcon className="mr-1 h-3 w-3" />
+                        <span>{event.shiftData.worker.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Status and Notes */}
+                <div className="flex items-center justify-between">
+                  {event.shiftData.status && (
+                    <Badge 
+                      variant={event.shiftData.status === 'completed' ? 'default' : 
+                              event.shiftData.status === 'in_progress' ? 'secondary' : 
+                              event.shiftData.status === 'cancelled' ? 'destructive' : 'outline'} 
+                      className="text-xs"
+                    >
+                      {event.shiftData.status.replace('_', ' ')}
+                    </Badge>
+                  )}
+                  {event.shiftData.notes && (
+                    <div className="flex items-center text-[10px] opacity-80 max-w-[120px] truncate" title={event.shiftData.notes}>
+                      <FileTextIcon className="mr-1 h-3 w-3" />
+                      <span className="truncate">{event.shiftData.notes}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             
