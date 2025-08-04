@@ -115,7 +115,7 @@ export function ReusableDataTable<TData, TValue>({
   }
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 ">
       {/* Header */}
       {(title || description) && (
         <div>

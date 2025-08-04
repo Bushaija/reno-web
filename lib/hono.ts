@@ -4,7 +4,7 @@ import { hc } from "hono/client";
 import type { router } from "@/app/api/[[...route]]/routes";
 
 // Base API URL configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // Create and export the base Hono client
 export const honoClient = hc<router>(API_BASE_URL);

@@ -5,6 +5,7 @@ import { ReusableDataTable } from "@/components/data-table/components/data-table
 import { createChangeRequestColumns } from "@/components/data-table/resources/change-request.columns"
 import { ChangeRequest, ChangeRequestsListResponse } from "@/components/data-table/resources/change-request.types"
 import { useToast } from "@/hooks/use-toast"
+import { useChangeRequests, useUpdateChangeRequest } from "@/features/change-requests/api"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,47 +19,32 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-// Mock API call - replace with your actual API call
-async function fetchChangeRequests(
-  page: number = 1, 
-  limit: number = 10,
-  status?: string,
-  department?: string
-): Promise<ChangeRequestsListResponse> {
-  // This would be your actual API call
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-    ...(status && { status }),
-    ...(department && { department }),
-  });
-  
-  const response = await fetch(`/api/change-requests?${params}`);
-  return response.json();
-}
-
-async function updateRequestStatus(requestId: number, status: "approved" | "rejected"): Promise<void> {
-  const response = await fetch(`/api/change-requests/${requestId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to update request status');
-  }
-}
+// Remove mock API calls - we'll use the real hooks instead
 
 export default function ChangeRequestsPage() {
   const { toast } = useToast();
-  const [data, setData] = React.useState<ChangeRequest[]>([]);
-  const [pagination, setPagination] = React.useState({
+  const updateChangeRequestMutation = useUpdateChangeRequest();
+  
+  // Use the real API hook for fetching change requests
+  const [queryParams, setQueryParams] = React.useState({
+    page: "1",
+    limit: "10",
+  });
+  
+  const { data: changeRequestsData, isLoading, error } = useChangeRequests(queryParams);
+  
+  // Show loading state for mutations
+  const isUpdating = updateChangeRequestMutation.isPending;
+  
+  // Extract data and pagination from the hook response
+  const data = changeRequestsData?.requests || [];
+  const pagination = changeRequestsData?.pagination || {
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 0,
-  });
-  const [isLoading, setIsLoading] = React.useState(false);
+  };
+  
   const [actionDialog, setActionDialog] = React.useState<{
     isOpen: boolean;
     request: ChangeRequest | null;
@@ -69,44 +55,63 @@ export default function ChangeRequestsPage() {
     action: null,
   });
 
-  const loadChangeRequests = React.useCallback(async (
-    page: number = 1, 
-    limit: number = 10,
-    filters?: { status?: string; department?: string }
-  ) => {
-    setIsLoading(true);
-    try {
-      const response = await fetchChangeRequests(page, limit, filters?.status, filters?.department);
-      if (response.success) {
-        setData(response.data.requests);
-        setPagination(response.data.pagination);
-      }
-    } catch (error) {
-      console.error("Failed to fetch change requests:", error);
+  // Handle API errors
+  React.useEffect(() => {
+    if (error) {
+      console.error("Error fetching change requests:", error);
       toast({
         title: "Error",
         description: "Failed to load change requests. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
-  }, [toast]);
-
-  React.useEffect(() => {
-    loadChangeRequests();
-  }, [loadChangeRequests]);
+  }, [error, toast]);
 
   const handlePaginationChange = (page: number, limit: number) => {
-    loadChangeRequests(page, limit);
+    setQueryParams({
+      page: String(page),
+      limit: String(limit),
+    });
   };
 
   const handleView = (request: ChangeRequest) => {
     console.log("View request:", request);
-    // Implement view logic - could open a modal or navigate to detail page
+    
+    // Create a detailed view of the change request
+    const details = `
+Change Request Details:
+Request ID: ${request.id}
+Status: ${request.status}
+Submitted: ${new Date(request.submittedAt).toLocaleDateString()}
+
+Requester Information:
+Name: ${request.requester.name}
+Employee ID: ${request.requester.employeeId}
+
+Shift Information:
+Shift ID: ${request.shift.id}
+Department: ${request.shift.department}
+Start Time: ${new Date(request.shift.startTime).toLocaleString()}
+End Time: ${new Date(request.shift.endTime).toLocaleString()}
+
+Reason for Change:
+${request.reason}
+    `.trim();
+    
+    alert(details);
   };
 
   const handleApprove = (request: ChangeRequest) => {
+    // Check if request is already processed
+    if (request.status !== "pending") {
+      toast({
+        title: "Cannot Approve",
+        description: `This request is already ${request.status}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setActionDialog({
       isOpen: true,
       request,
@@ -115,6 +120,16 @@ export default function ChangeRequestsPage() {
   };
 
   const handleReject = (request: ChangeRequest) => {
+    // Check if request is already processed
+    if (request.status !== "pending") {
+      toast({
+        title: "Cannot Reject",
+        description: `This request is already ${request.status}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setActionDialog({
       isOpen: true,
       request,
@@ -124,29 +139,51 @@ export default function ChangeRequestsPage() {
 
   const handleReviewDetails = (request: ChangeRequest) => {
     console.log("Review shift details:", request.shift);
-    // Implement logic to show shift details
+    
+    // Create a detailed view of the shift information
+    const shiftDetails = `
+Shift Details for Review:
+Shift ID: ${request.shift.id}
+Department: ${request.shift.department}
+Start Time: ${new Date(request.shift.startTime).toLocaleString()}
+End Time: ${new Date(request.shift.endTime).toLocaleString()}
+Duration: ${Math.round((new Date(request.shift.endTime).getTime() - new Date(request.shift.startTime).getTime()) / (1000 * 60 * 60))} hours
+
+Requester Information:
+Name: ${request.requester.name}
+Employee ID: ${request.requester.employeeId}
+
+Change Request:
+Reason: ${request.reason}
+Status: ${request.status}
+Submitted: ${new Date(request.submittedAt).toLocaleDateString()}
+
+This shift is being requested for change by the healthcare worker.
+    `.trim();
+    
+    alert(shiftDetails);
   };
 
   const confirmAction = async () => {
     if (!actionDialog.request || !actionDialog.action) return;
 
     try {
-      await updateRequestStatus(actionDialog.request.id, actionDialog.action);
+      // Map the action to the correct status
+      const status = actionDialog.action === "approve" ? "approved" : "rejected";
       
-      // Update local state
-      setData(prevData =>
-        prevData.map(item =>
-          item.id === actionDialog.request!.id
-            ? { ...item, status: actionDialog.action! as "approved" | "rejected" }
-            : item
-        )
-      );
+      // Use the mutation to update the request
+      await updateChangeRequestMutation.mutateAsync({
+        id: actionDialog.request.id,
+        status,
+        reviewNote: `Request ${actionDialog.action}d by admin`,
+      });
 
       toast({
         title: "Success",
         description: `Request ${actionDialog.action === "approve" ? "approved" : "rejected"} successfully.`,
       });
     } catch (error) {
+      console.error("Failed to update change request:", error);
       toast({
         title: "Error",
         description: `Failed to ${actionDialog.action} request. Please try again.`,
@@ -158,7 +195,8 @@ export default function ChangeRequestsPage() {
   };
 
   const handleRefresh = () => {
-    loadChangeRequests(pagination.page, pagination.limit);
+    // The useChangeRequests hook will automatically refetch when queryParams change
+    setQueryParams(prev => ({ ...prev }));
   };
 
   const handleExport = () => {
@@ -254,6 +292,10 @@ export default function ChangeRequestsPage() {
             <AlertDialogDescription>
               Are you sure you want to {actionDialog.action} the change request from{" "}
               <strong>{actionDialog.request?.requester.name}</strong>?
+              <br />
+              <strong>Shift:</strong> {actionDialog.request?.shift.department} - {new Date(actionDialog.request?.shift.startTime || '').toLocaleDateString()}
+              <br />
+              <strong>Reason:</strong> {actionDialog.request?.reason}
               {actionDialog.action === "reject" && (
                 <span className="block mt-2 text-red-600">
                   This action cannot be undone.
@@ -265,13 +307,17 @@ export default function ChangeRequestsPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmAction}
+              disabled={isUpdating}
               className={
                 actionDialog.action === "approve" 
                   ? "bg-green-600 hover:bg-green-700" 
                   : "bg-red-600 hover:bg-red-700"
               }
             >
-              {actionDialog.action === "approve" ? "Approve" : "Reject"}
+              {isUpdating 
+                ? "Processing..." 
+                : (actionDialog.action === "approve" ? "Approve" : "Reject")
+              }
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

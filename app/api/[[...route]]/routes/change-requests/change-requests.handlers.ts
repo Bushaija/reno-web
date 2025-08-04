@@ -1,10 +1,7 @@
 import db from '@/db';
 import { changeRequests, healthcareWorkers, shifts, staff } from '@/db/schema/tables';
-import { eq, and, inArray } from 'drizzle-orm';
-import { changeRequestsListResponseSchema, updateChangeRequestRequestSchema, updateChangeRequestResponseSchema } from './change-requests.types';
-import { z } from '@hono/zod-openapi';
-import type { Context } from "hono";
-import type { requestStatus } from "@/db/schema/tables"; // or define the type inline
+import { eq, inArray } from 'drizzle-orm';
+import { updateChangeRequestRequestSchema } from './change-requests.types';
 import { sql } from "drizzle-orm";
 import type { AppRouteHandler } from "../../lib/types";
 import { getChangeRequests, updateChangeRequest } from "./change-requests.routes";
@@ -118,16 +115,29 @@ export const getChangeRequestsHandler: AppRouteHandler<typeof getChangeRequests>
 // PUT /admin/change-requests/:id
 export const updateChangeRequestHandler: AppRouteHandler<typeof updateChangeRequest> = async (c) => {
   const { id } = c.req.param();
-  const body = await c.req.json();
-  const parse = updateChangeRequestRequestSchema.safeParse(body);
-  if (!parse.success) {
-    return c.json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid input', details: parse.error.issues }, timestamp: new Date().toISOString() }, 400);
+  
+  try {
+    const body = await c.req.json();
+    
+    const parse = updateChangeRequestRequestSchema.safeParse(body);
+    if (!parse.success) {
+      console.log("updateChangeRequestHandler - Validation error:", parse.error.issues);
+      return c.json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid input', details: parse.error.issues }, timestamp: new Date().toISOString() }, 400);
+    }
+    
+    const { status, reviewNote } = parse.data;
+    console.log("updateChangeRequestHandler - Parsed data:", { status, reviewNote });
+    
+    // TODO: Optionally, set reviewerId from auth context
+    await db.update(changeRequests)
+      .set({ status, reviewedAt: new Date().toISOString() })
+      .where(eq(changeRequests.requestId, Number(id)));
+    
+    console.log("updateChangeRequestHandler - Database update successful");
+    // Optionally, log reviewNote somewhere
+    return c.json({ success: true, message: 'Change request updated successfully' });
+  } catch (error) {
+    console.error("updateChangeRequestHandler - Error parsing JSON:", error);
+    return c.json({ success: false, error: { code: 'PARSE_ERROR', message: 'Failed to parse request body' }, timestamp: new Date().toISOString() }, 400);
   }
-  const { status, reviewNote } = parse.data;
-  // TODO: Optionally, set reviewerId from auth context
-  await db.update(changeRequests)
-    .set({ status, reviewedAt: new Date().toISOString() })
-    .where(eq(changeRequests.requestId, Number(id)));
-  // Optionally, log reviewNote somewhere
-  return c.json({ success: true, message: 'Change request updated successfully' });
 };

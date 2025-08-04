@@ -35,15 +35,28 @@ export function useUpdateChangeRequest() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string | number; [key: string]: any }) => {
-      return handleHonoResponse(
-        honoClient.api['/admin/change-requests/:id'].$put({
-          ...data,
-          param: { id: String(id) },
-          query: {},
-          header: {},
-          cookie: {},
-        })
-      );
+      console.log("useUpdateChangeRequest - Data being sent:", data);
+      
+      // Use direct fetch to avoid Hono client issues
+      try {
+        const response = await fetch(`/api/admin/change-requests/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error('Error in updateChangeRequest mutation:', error);
+        throw error;
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['change-requests'] });

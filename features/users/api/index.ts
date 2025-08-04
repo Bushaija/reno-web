@@ -61,7 +61,13 @@ export function useCreateUser() {
   return useMutation({
     mutationFn: async (data: any) => {
       return handleHonoResponse(
-        honoClient.api['/admin/users'].$post(data)
+        honoClient.api['/admin/users'].$post({
+          json: data,
+          query: {},
+          header: {},
+          cookie: {},
+          param: {},
+        })
       );
     },
     onSuccess: () => {
@@ -75,15 +81,28 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string | number; [key: string]: any }) => {
-      return handleHonoResponse(
-        honoClient.api['/admin/users/:id'].$put({
-          ...data,
-          param: { id: String(id) },
-          query: {},
-          header: {},
-          cookie: {},
-        })
-      );
+      console.log("useUpdateUser - Data being sent:", data);
+      
+      // Try direct fetch first to test the endpoint
+      try {
+        const response = await fetch(`/api/admin/users/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error('Error in updateUser mutation:', error);
+        throw error;
+      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });

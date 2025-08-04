@@ -8,6 +8,7 @@ import { cookies, headers } from 'next/headers';
 import { ReactNode } from 'react';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import ModalProvider from '@/providers/modal-context';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -26,15 +27,17 @@ function DashboardClientLayout({
   return (
     <KBar>
       <SidebarProvider defaultOpen={defaultOpen}>
-        <AppSidebar />
-        <SidebarInset>
-          <Header />
-          {/* Global toast notifications for all dashboard routes */}
-          {/* <Toaster richColors closeButton position="bottom-right" /> */}
-          <div className='p-4'>
-            {children}
-          </div>
-        </SidebarInset>
+        <ModalProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <Header />
+            {/* Global toast notifications for all dashboard routes */}
+            {/* <Toaster richColors closeButton position="bottom-right" /> */}
+            <div className='p-4'>
+              {children}
+            </div>
+          </SidebarInset>
+        </ModalProvider>
       </SidebarProvider>
     </KBar>
   );

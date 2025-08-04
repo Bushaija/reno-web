@@ -126,6 +126,7 @@ export const createChangeRequestColumns = ({
     ),
   },
   {
+    id: "requester.name",
     accessorKey: "requester.name",
     header: ({ column }) => {
       return (

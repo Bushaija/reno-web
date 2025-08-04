@@ -106,6 +106,7 @@ export const healthcareWorkers = pgTable("healthcare_workers", {
 	specialization: varchar({ length: 100 }),
 	licenseNumber: varchar("license_number", { length: 100 }),
 	certification: varchar({ length: 100 }),
+	department: varchar({ length: 100 }),
 	availableStart: time("available_start"),
 	availableEnd: time("available_end"),
 	createdAt: timestamp("created_at", { mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),

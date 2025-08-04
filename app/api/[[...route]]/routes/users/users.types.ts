@@ -7,7 +7,7 @@ export const userProfileSchema = z.object({
     certification: z.string().optional(),
     availableStart: z.string(), // e.g. "08:00:00"
     availableEnd: z.string(),   // e.g. "20:00:00"
-    // department: z.string().optional(), // Accept in API, but not stored in DB
+    department: z.string().optional(), // Accept in API, but not stored in DB
 });
 
 export const userSchema = z.object({
@@ -58,9 +58,9 @@ export const deleteUserResponseSchema = z.object({
 export const createUserRequestSchema = z.object({
     name: z.string(),
     email: z.string().email(),
-    password: z.string(),
-    phone: z.string(),
-    role: z.literal("healthcare_worker"),
+    // password: z.string(),
+    phone: z.string().optional(),
+    role: z.enum(["admin", "healthcare_worker"]),
     profile: userProfileSchema.extend({
         certification: z.string().optional(),
     })

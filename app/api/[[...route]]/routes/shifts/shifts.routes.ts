@@ -34,6 +34,21 @@ export const listShifts = createRoute({
   },
 });
 
+export const getShift = createRoute({
+  path: "/admin/shifts/:id",
+  method: "get",
+  tags: ["shifts"],
+  request: {
+    params: z.object({ id: z.string() })
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: z.object({ success: z.literal(true), data: shiftSchema }) } },
+      description: "Shift details"
+    }
+  }
+});
+
 export const createShift = createRoute({
   path: "/admin/shifts",
   method: "post",
@@ -61,6 +76,21 @@ export const updateShift = createRoute({
     200: {
       content: { "application/json": { schema: updateShiftResponseSchema } },
       description: "Shift updated successfully"
+    }
+  }
+});
+
+export const deleteShift = createRoute({
+  path: "/admin/shifts/:id",
+  method: "delete",
+  tags: ["shifts"],
+  request: {
+    params: z.object({ id: z.string() })
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: z.object({ success: z.literal(true), message: z.string() }) } },
+      description: "Shift deleted successfully"
     }
   }
 });

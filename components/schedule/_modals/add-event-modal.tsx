@@ -20,6 +20,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { EventFormData, eventSchema, Variant, Event } from "@/types/index";
 import { useScheduler } from "@/providers/schedular-provider";
 import { v4 as uuidv4 } from "uuid"; // Use UUID to generate event IDs
+import { useCreateShift } from "@/features/shifts/api";
+import { useUsers } from "@/features/users/api";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function AddEventModal({
   CustomAddEventModal,
@@ -27,6 +38,16 @@ export default function AddEventModal({
   CustomAddEventModal?: React.FC<{ register: any; errors: any }>;
 }) {
   const { setClose, data } = useModal();
+  const createShift = useCreateShift();
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string>("");
+  
+  // Fetch healthcare workers for the dropdown
+  const { data: usersData } = useUsers({ 
+    role: "healthcare_worker",
+    limit: "100" // Get all workers
+  });
+  
+  const healthcareWorkers = usersData?.users || [];
 
   const [selectedColor, setSelectedColor] = useState<string>(
     getEventColor(data?.variant || "primary")
@@ -58,7 +79,6 @@ export default function AddEventModal({
   useEffect(() => {
     if (data?.default) {
       const eventData = data?.default;
-      console.log("eventData", eventData);
       reset({
         title: eventData.title,
         description: eventData.description || "",
@@ -122,19 +142,45 @@ export default function AddEventModal({
     }
   };
 
-  const onSubmit: SubmitHandler<EventFormData> = (formData) => {
-    const newEvent: Event = {
-      id: uuidv4(), // Generate a unique ID
-      title: formData.title,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      variant: formData.variant,
-      description: formData.description,
-    };
+  const onSubmit: SubmitHandler<EventFormData> = async (formData) => {
+    try {
+      if (!selectedWorkerId) {
+        toast.error("Please select a healthcare worker");
+        return;
+      }
 
-    if (!typedData?.default?.id) handlers.handleAddEvent(newEvent);
-    else handlers.handleUpdateEvent(newEvent, typedData.default.id);
-    setClose(); // Close the modal after submission
+      // Validate that end time is after start time
+      if (formData.endDate <= formData.startDate) {
+        toast.error("End time must be after start time");
+        return;
+      }
+
+      // Create shift data for API
+      const shiftData = {
+        workerId: parseInt(selectedWorkerId),
+        startTime: formData.startDate.toISOString(),
+        endTime: formData.endDate.toISOString(),
+        department: formData.title,
+        maxStaff: 1, // TODO: This could be made configurable
+        notes: formData.description,
+        status: "scheduled" as const,
+      };
+
+      // Create shift via API
+      const result = await createShift.mutateAsync(shiftData);
+
+      // The calendar will automatically refetch and update via the API
+      // No need to manually add to local state since we're using API data
+      
+      // Show success message with formatted dates
+      const startTimeFormatted = format(formData.startDate, "MMM dd, yyyy 'at' h:mm a");
+      const endTimeFormatted = format(formData.endDate, "MMM dd, yyyy 'at' h:mm a");
+      toast.success(`Shift created successfully! ${startTimeFormatted} - ${endTimeFormatted}`);
+      setClose(); // Close the modal after submission
+    } catch (error) {
+      console.error("Error creating shift:", error);
+      toast.error("Failed to create shift. Please try again.");
+    }
   };
 
   return (
@@ -144,11 +190,27 @@ export default function AddEventModal({
       ) : (
         <>
           <div className="grid gap-2">
-            <Label htmlFor="title">Event Name</Label>
+            <Label htmlFor="worker">Healthcare Worker</Label>
+            <Select value={selectedWorkerId} onValueChange={setSelectedWorkerId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a healthcare worker" />
+              </SelectTrigger>
+              <SelectContent>
+                {healthcareWorkers.map((worker) => (
+                  <SelectItem key={worker.id} value={worker.id.toString()}>
+                    {worker.name} - {worker.profile?.employeeId || 'No ID'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="title">Department</Label>
             <Input
               id="title"
               {...register("title")}
-              placeholder="Enter event name"
+              placeholder="Enter department name"
               className={cn(errors.title && "border-red-500")}
             />
             {errors.title && (
@@ -159,7 +221,7 @@ export default function AddEventModal({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Notes</Label>
             <Textarea
               id="description"
               {...register("description")}
@@ -217,7 +279,9 @@ export default function AddEventModal({
             <Button variant="outline" type="button" onClick={() => setClose()}>
               Cancel
             </Button>
-            <Button type="submit">Save Shift</Button>
+            <Button type="submit" disabled={createShift.isPending}>
+              {createShift.isPending ? "Creating..." : "Save Shift"}
+            </Button>
           </div>
         </>
       )}

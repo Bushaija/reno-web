@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useModal } from "@/providers/modal-context";
 import AddEventModal from "@/components/schedule/_modals/add-event-modal";
 import { Event, CustomEventModal } from "@/types";
-import { TrashIcon, CalendarIcon, ClockIcon } from "lucide-react";
+import { TrashIcon, CalendarIcon, ClockIcon, UserIcon, BuildingIcon } from "lucide-react";
 import { useScheduler } from "@/providers/schedular-provider";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import CustomModal from "@/components/ui/custom-modal";
+import { useDeleteShift } from "@/features/shifts/api";
+import { toast } from "sonner";
 
 // Function to format date
 const formatDate = (date: Date) => {
@@ -73,6 +75,10 @@ export default function EventStyled({
 }) {
   const { setOpen } = useModal();
   const { handlers } = useScheduler();
+  const deleteShift = useDeleteShift();
+
+  // Check if this is a shift event (has shiftData)
+  const isShiftEvent = !!event.shiftData;
 
   // Determine if delete button should be shown
   // Hide it for minimized events to save space, show on hover instead
@@ -114,13 +120,28 @@ export default function EventStyled({
     >
       {/* Delete button - shown by default for non-minimized, or on hover for minimized */}
       <Button
-        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+        onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
           e.stopPropagation();
-          handlers.handleDeleteEvent(event?.id);
-          onDelete?.(event?.id);
+          
+          if (isShiftEvent && event.shiftData) {
+            // Delete from API first
+            try {
+              await deleteShift.mutateAsync(event.shiftData.id);
+              // Then remove from local state
+              handlers.handleDeleteEvent(event?.id);
+              onDelete?.(event?.id);
+            } catch (error) {
+              console.error('Failed to delete shift:', error);
+            }
+          } else {
+            // Regular event deletion
+            handlers.handleDeleteEvent(event?.id);
+            onDelete?.(event?.id);
+          }
         }}
         variant="destructive"
         size="icon"
+        disabled={deleteShift.isPending}
         className={cn(
           "absolute z-[100] right-1 top-[-8px] h-6 w-6 p-0 shadow-md hover:bg-destructive/90 transition-all duration-200",
           event?.minmized ? "opacity-0 group-hover:opacity-100" : "opacity-100"
@@ -180,7 +201,35 @@ export default function EventStyled({
               <div className="my-2 text-sm">{event?.description}</div>
             )}
             
-            {!event?.minmized && (
+            {/* Show shift-specific information */}
+            {!event?.minmized && isShiftEvent && event.shiftData && (
+              <div className="text-xs space-y-1 mt-2">
+                <div className="flex items-center">
+                  <BuildingIcon className="mr-1 h-3 w-3" />
+                  <span className="font-medium">Dept: {event.shiftData.department}</span>
+                </div>
+                <div className="flex items-center">
+                  <UserIcon className="mr-1 h-3 w-3" />
+                  <span>Worker ID: {event.shiftData.workerId}</span>
+                </div>
+                <div className="flex items-center">
+                  <CalendarIcon className="mr-1 h-3 w-3" />
+                  {formatDate(event?.startDate)}
+                </div>
+                <div className="flex items-center">
+                  <ClockIcon className="mr-1 h-3 w-3" />
+                  {formatDate(event?.endDate)}
+                </div>
+                {event.shiftData.status && (
+                  <Badge variant="outline" className="text-xs mt-1">
+                    {event.shiftData.status}
+                  </Badge>
+                )}
+              </div>
+            )}
+            
+            {/* Show regular event information for non-shift events */}
+            {!event?.minmized && !isShiftEvent && (
               <div className="text-xs space-y-1 mt-2">
                 <div className="flex items-center">
                   <CalendarIcon className="mr-1 h-3 w-3" />

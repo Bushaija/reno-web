@@ -69,7 +69,7 @@ export const getUsers: AppRouteHandler<typeof listUsers> = async (c) => {
                 profile = {
                     employeeId: worker.employeeId,
                     specialization: worker.specialization || "",
-                    department: "", // Not available in schema
+                    department: worker.department || "",
                     licenseNumber: worker.licenseNumber || "",
                     certification: worker.certification || "",
                     availableStart: worker.availableStart || "",
@@ -171,31 +171,47 @@ export const updateUserHandler: AppRouteHandler<typeof updateUser> = async (c) =
         return c.json({ success: false, error: { code: "VALIDATION_ERROR", message: "Invalid user id" } }, 400);
     }
     
+    console.log("Update user request received for ID:", staffId);
     const body: any = await c.req.json();
+    console.log("Request body received:", body);
+    
+    // Check if user exists
+    const existingUser = await db.query.staff.findFirst({ where: eq(staff.staffId, staffId) });
+    if (!existingUser) {
+        return c.json({ success: false, error: { code: "NOT_FOUND", message: "User not found" } }, 404);
+    }
     
     // Update name and other staff fields
     const updateData: any = {};
     if (body.name) updateData.name = body.name;
-    if (body.email) updateData.email = body.email;
-    if (body.phone) updateData.phone = body.phone;
     
     if (Object.keys(updateData).length > 0) {
         updateData.updatedAt = sql`CURRENT_TIMESTAMP`;
         await db.update(staff).set(updateData).where(eq(staff.staffId, staffId));
     }
     
-    // Update profile (only for healthcare_worker)
+    // Update profile based on user role
     if (body.profile) {
+        // Check if user is a healthcare worker
         const worker = await db.query.healthcareWorkers.findFirst({ where: eq(healthcareWorkers.userId, staffId) });
         if (worker) {
+            // Update healthcare worker profile
             await db.update(healthcareWorkers).set({
-                specialization: body.profile.specialization ?? worker.specialization,
-                licenseNumber: body.profile.licenseNumber ?? worker.licenseNumber,
-                certification: body.profile.certification ?? worker.certification,
-                availableStart: body.profile.availableStart ?? worker.availableStart,
-                availableEnd: body.profile.availableEnd ?? worker.availableEnd,
-                // department and employeeId are not updatable here
+                employeeId: body.profile.employeeId || worker.employeeId,
+                specialization: body.profile.specialization || worker.specialization,
+                licenseNumber: body.profile.licenseNumber || worker.licenseNumber,
+                certification: body.profile.certification || worker.certification,
+                availableStart: body.profile.availableStart || worker.availableStart,
+                availableEnd: body.profile.availableEnd || worker.availableEnd,
             }).where(eq(healthcareWorkers.userId, staffId));
+        } else {
+            // Check if user is an admin
+            const admin = await db.query.admins.findFirst({ where: eq(admins.userId, staffId) });
+            if (admin) {
+                // For admins, we might want to handle department updates differently
+                // Currently, the schema doesn't support admin profile updates in the same way
+                console.log("Admin profile update requested but not implemented");
+            }
         }
     }
     
@@ -209,12 +225,25 @@ export const deleteUserHandler: AppRouteHandler<typeof deleteUser> = async (c) =
         return c.json({ success: false, error: { code: "VALIDATION_ERROR", message: "Invalid user id" } }, 400);
     }
     
-    // Since there's no status field in staff table, we'll actually delete the record
-    // or you could add a status field to the staff table for soft deletion
-    // For now, we'll just return success (implement actual deletion as needed)
-    // await db.delete(staff).where(eq(staff.staffId, staffId));
-    
-    return c.json({ success: true, message: "User deactivated successfully" });
+    try {
+        // Check if user exists
+        const existingUser = await db.query.staff.findFirst({ where: eq(staff.staffId, staffId) });
+        if (!existingUser) {
+            return c.json({ success: false, error: { code: "NOT_FOUND", message: "User not found" } }, 404);
+        }
+        
+        // Delete related records first (due to foreign key constraints)
+        await db.delete(healthcareWorkers).where(eq(healthcareWorkers.userId, staffId));
+        await db.delete(admins).where(eq(admins.userId, staffId));
+        
+        // Delete the staff member
+        await db.delete(staff).where(eq(staff.staffId, staffId));
+        
+        return c.json({ success: true, message: "User deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        return c.json({ success: false, error: { code: "INTERNAL_ERROR", message: "Failed to delete user" } }, 500);
+    }
 };
 
 export const createUserHandler: AppRouteHandler<typeof createUser> = async (c) => {
@@ -232,7 +261,7 @@ export const createUserHandler: AppRouteHandler<typeof createUser> = async (c) =
     }
     
     // Hash password (placeholder)
-    const passwordHash = "hashed_" + body.password;
+    const passwordHash = "hashed_" + process.env.DEFAULT_USER_PASSWORD;
     
     // Insert staff member
     const [newStaff] = await db.insert(staff).values({
@@ -250,6 +279,7 @@ export const createUserHandler: AppRouteHandler<typeof createUser> = async (c) =
             userId: newStaff.staffId,
             employeeId: body.profile.employeeId,
             specialization: body.profile.specialization,
+            department: body.profile.department,
             licenseNumber: body.profile.licenseNumber,
             certification: body.profile.certification,
             availableStart: body.profile.availableStart?.trim() ? body.profile.availableStart : null,
