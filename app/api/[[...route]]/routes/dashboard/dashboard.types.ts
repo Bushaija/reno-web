@@ -9,6 +9,8 @@ export const dashboardStatsSchema = z.object({
     shiftCount: z.number(),
     activeShiftCount: z.number(),
     shiftAssignmentCount: z.number(),
+    pendingChangeRequestsCount: z.number(),
+    attendanceRate: z.number(),
   })
 });
 

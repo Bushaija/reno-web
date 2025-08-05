@@ -1,5 +1,5 @@
 import db from '@/db';
-import { staff, admins, healthcareWorkers, shifts, shiftAssignments } from '@/db/schema/tables';
+import { staff, admins, healthcareWorkers, shifts, shiftAssignments, changeRequests, attendanceRecords } from '@/db/schema/tables';
 import { sql } from 'drizzle-orm';
 import type { AppRouteHandler } from '../../lib/types';
 import { getDashboardStats } from './dashboard.routes';
@@ -30,6 +30,20 @@ export const getDashboardStatsHandler: AppRouteHandler<typeof getDashboardStats>
   const shiftAssignmentCountResult = await db.select({ count: sql<number>`count(*)` }).from(shiftAssignments);
   const shiftAssignmentCount = Number(shiftAssignmentCountResult[0]?.count ?? 0);
 
+  // Count pending change requests
+  const pendingChangeRequestsResult = await db.select({ count: sql<number>`count(*)` }).from(changeRequests).where(sql`status = 'pending'`);
+  const pendingChangeRequestsCount = Number(pendingChangeRequestsResult[0]?.count ?? 0);
+
+  // Calculate attendance rate
+  const attendanceStatsResult = await db.select({
+    totalRecords: sql<number>`count(*)`,
+    presentRecords: sql<number>`count(*) filter (where status = 'present')`
+  }).from(attendanceRecords);
+  
+  const totalRecords = Number(attendanceStatsResult[0]?.totalRecords ?? 0);
+  const presentRecords = Number(attendanceStatsResult[0]?.presentRecords ?? 0);
+  const attendanceRate = totalRecords > 0 ? (presentRecords / totalRecords) * 100 : 0;
+
   return c.json({
     success: true,
     data: {
@@ -39,6 +53,8 @@ export const getDashboardStatsHandler: AppRouteHandler<typeof getDashboardStats>
       shiftCount,
       activeShiftCount,
       shiftAssignmentCount,
+      pendingChangeRequestsCount,
+      attendanceRate,
     },
   });
 };

@@ -1,14 +1,9 @@
 "use client"
 
-import { Percent, Building } from "lucide-react"
+import { Percent, Building, Users, Clock, AlertCircle } from "lucide-react"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { StatCardSkeleton } from "@/components/skeletons"
-
-// import { getHealthCentersByHospital } from "@/features/on-boarding/utils/location-utils"
-// import { useListExecutedFacilities } from "@/features/api/frontend"
-// import { useGetFacilityById } from "@/features/facilities/api/use-get-facility"
-import { authClient } from "@/lib/auth-client"
-
+import { useDashboardStats } from "@/features/dashboard/api"
 
 export interface DashboardStatsProps {
   executedCount?: number
@@ -16,33 +11,65 @@ export interface DashboardStatsProps {
 }
 
 export function DashboardStats({ executedCount: executedProp, facilityId: facilityIdProp }: DashboardStatsProps) {
-  const { data: session } = authClient.useSession()
+  const { data: dashboardStats, isLoading, error } = useDashboardStats()
+
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+        <StatCardSkeleton />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard
+          title="Error Loading Stats"
+          value="--"
+          icon={<AlertCircle className="h-4 w-4 text-destructive" />}
+          description="Failed to load dashboard statistics"
+        />
+      </div>
+    )
+  }
+
+  console.log("dashboardStats", dashboardStats)
+
+  const stats = dashboardStats;
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
       <StatCard
         title="Total Staff"
-        value={`${10}`}
-        icon={<Building className="h-4 w-4 text-muted-foreground" />}
+        value={`${stats?.healthcareWorkerCount ?? 0}`}
+        icon={<Users className="h-4 w-4 text-muted-foreground" />}
+        description="Active healthcare workers"
       />
 
       <StatCard
         title="Active Shifts"
-        value={`${6}`}
-        icon={<Building className="h-4 w-4 text-muted-foreground" />}
+        value={`${stats?.shiftCount ?? 0}`}
+        icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+        description="Currently in progress"
       />
 
       <StatCard
         title="Pending Requests"
-        value={`${2}`}
-        icon={<Building className="h-4 w-4 text-muted-foreground" />}
+        value={`${stats?.pendingChangeRequestsCount ?? 0}`}
+        icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}
+        description="Awaiting approval"
       />
 
-      <StatCard
+      {/* <StatCard
         title="Attendance Rate"
-        value={`${90.00.toFixed(2)}%`}
+        value={stats?.attendanceRate ? `${stats.attendanceRate.toFixed(1)}%` : "No Data"}
         icon={<Percent className="h-4 w-4 text-muted-foreground" />}
-      />
+        description="Present vs total records"
+      /> */}
     </div>
   )
 } 
