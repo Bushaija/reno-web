@@ -4,6 +4,7 @@ import { Percent, Building, Users, Clock, AlertCircle } from "lucide-react"
 import { StatCard } from "@/components/dashboard/StatCard"
 import { StatCardSkeleton } from "@/components/skeletons"
 import { useDashboardStats } from "@/features/dashboard/api"
+import { authClient } from "@/lib/auth-client"
 
 export interface DashboardStatsProps {
   executedCount?: number
@@ -12,6 +13,10 @@ export interface DashboardStatsProps {
 
 export function DashboardStats({ executedCount: executedProp, facilityId: facilityIdProp }: DashboardStatsProps) {
   const { data: dashboardStats, isLoading, error } = useDashboardStats()
+
+  const { data: user } = authClient.useSession()
+
+  console.log("user", user)
 
   if (isLoading) {
     return (

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { honoClient, handleHonoResponse } from '@/lib/hono';
-import type { User } from '@/app/api/[[...route]]/routes/users/users.types';
+import type { User } from '@/app/api/[[...route]]/routes/web/users/users.types';
 
 // Fetch all users (with optional filters/pagination)
 export function useUsers(params?: {

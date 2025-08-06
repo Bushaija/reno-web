@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { honoClient, handleHonoResponse } from '@/lib/hono';
-import type { ChangeRequest } from '@/app/api/[[...route]]/routes/change-requests/change-requests.types';
+import type { ChangeRequest } from '@/app/api/[[...route]]/routes/web/change-requests/change-requests.types';
 
 // Fetch all change requests (with optional filters/pagination)
 export function useChangeRequests(params?: {

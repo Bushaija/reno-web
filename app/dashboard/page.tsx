@@ -5,7 +5,7 @@ const page = () => {
   return (
     <div className="flex flex-col gap-4">
       <DashboardStats />
-      <ChartBarInteractive />
+      {/* <ChartBarInteractive /> */}
     </div>
   )
 }

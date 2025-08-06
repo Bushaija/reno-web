@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { honoClient, handleHonoResponse } from '@/lib/hono';
-import type { ShiftAssignment } from '@/app/api/[[...route]]/routes/shift-assignments/shift-assignments.types';
+import type { ShiftAssignment } from '@/app/api/[[...route]]/routes/web/shift-assignments/shift-assignments.types';
 
 // Create a shift assignment
 export function useCreateShiftAssignment() {

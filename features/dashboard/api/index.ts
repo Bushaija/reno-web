@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { honoClient, handleHonoResponse } from '@/lib/hono';
-import type { DashboardStatsResponse } from '@/app/api/[[...route]]/routes/dashboard/dashboard.types';
+import type { DashboardStatsResponse } from '@/app/api/[[...route]]/routes/web/dashboard/dashboard.types';
 
 // Fetch dashboard analytics statistics
 export function useDashboardStats() {

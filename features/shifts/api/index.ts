@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { InferRequestType, InferResponseType } from 'hono';
 import { honoClient, handleHonoResponse } from '@/lib/hono';
-import type { Shift } from '@/app/api/[[...route]]/routes/shifts/shifts.types';
+import type { Shift } from '@/app/api/[[...route]]/routes/web/shifts/shifts.types';
 
 const shiftApi = honoClient.api['/admin/shifts'];
 const $create = shiftApi.$post;
