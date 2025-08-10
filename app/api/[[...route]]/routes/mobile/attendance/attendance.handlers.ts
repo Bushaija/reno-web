@@ -16,41 +16,17 @@ import {
     AttendanceRecordsResponse 
 } from "./attendance.types";
 
-// Helper function to calculate distance between two coordinates (Haversine formula)
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-}
-
-// POST /attendance/clock-in - Clock in for a shift
+// POST /healthcare-workers/{workerId}/clock-in - Clock in for a shift
 export const clockIn = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
-            return c.json({
-                success: false,
-                error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
-                },
-                timestamp: new Date().toISOString(),
-            }, 401);
-        }
-
+        const { workerId } = c.req.param();
         const body = await c.req.json() as ClockInRequest;
 
-        // Get worker ID for the current user
+        // Verify healthcare worker exists
         const worker = await db
-            .select({ workerId: healthcareWorkers.workerId })
+            .select()
             .from(healthcareWorkers)
-            .where(eq(healthcareWorkers.userId, userId))
+            .where(eq(healthcareWorkers.workerId, parseInt(workerId)))
             .limit(1);
 
         if (worker.length === 0) {
@@ -58,15 +34,13 @@ export const clockIn = async (c: Context) => {
                 success: false,
                 error: {
                     code: "NOT_FOUND",
-                    message: "Healthcare worker profile not found",
+                    message: "Healthcare worker not found",
                 },
                 timestamp: new Date().toISOString(),
             }, 404);
         }
 
-        const workerId = worker[0].workerId;
-
-        // Check if shift exists and user is assigned to it
+        // Check if shift exists and worker is assigned to it
         const shift = await db
             .select({
                 shiftId: shifts.shiftId,
@@ -79,7 +53,7 @@ export const clockIn = async (c: Context) => {
             .where(
                 and(
                     eq(shifts.shiftId, body.shiftId),
-                    eq(shiftAssignments.workerId, workerId),
+                    eq(shiftAssignments.workerId, parseInt(workerId)),
                     eq(shifts.status, 'scheduled')
                 )
             )
@@ -103,7 +77,7 @@ export const clockIn = async (c: Context) => {
             .where(
                 and(
                     eq(attendanceRecords.shiftId, body.shiftId),
-                    eq(attendanceRecords.workerId, workerId),
+                    eq(attendanceRecords.workerId, parseInt(workerId)),
                     sql`clock_out_time IS NULL`
                 )
             )
@@ -119,10 +93,6 @@ export const clockIn = async (c: Context) => {
                 timestamp: new Date().toISOString(),
             }, 409);
         }
-
-        // TODO: Add location verification logic here
-        // For now, we'll just store the location data
-        // In a real implementation, you'd verify the location is within acceptable range
 
         const clockInTime = new Date().toISOString();
         
@@ -141,7 +111,7 @@ export const clockIn = async (c: Context) => {
         const [record] = await db
             .insert(attendanceRecords)
             .values({
-                workerId,
+                workerId: parseInt(workerId),
                 shiftId: body.shiftId,
                 clockInTime,
                 status,
@@ -172,42 +142,11 @@ export const clockIn = async (c: Context) => {
     }
 };
 
-// POST /attendance/clock-out - Clock out from a shift
+// POST /healthcare-workers/{workerId}/clock-out - Clock out from a shift
 export const clockOut = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
-            return c.json({
-                success: false,
-                error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
-                },
-                timestamp: new Date().toISOString(),
-            }, 401);
-        }
-
+        const { workerId } = c.req.param();
         const body = await c.req.json() as ClockOutRequest;
-
-        // Get worker ID for the current user
-        const worker = await db
-            .select({ workerId: healthcareWorkers.workerId })
-            .from(healthcareWorkers)
-            .where(eq(healthcareWorkers.userId, userId))
-            .limit(1);
-
-        if (worker.length === 0) {
-            return c.json({
-                success: false,
-                error: {
-                    code: "NOT_FOUND",
-                    message: "Healthcare worker profile not found",
-                },
-                timestamp: new Date().toISOString(),
-            }, 404);
-        }
-
-        const workerId = worker[0].workerId;
 
         // Get the attendance record
         const record = await db
@@ -221,7 +160,7 @@ export const clockOut = async (c: Context) => {
             .where(
                 and(
                     eq(attendanceRecords.recordId, body.recordId),
-                    eq(attendanceRecords.workerId, workerId)
+                    eq(attendanceRecords.workerId, parseInt(workerId))
                 )
             )
             .limit(1);
@@ -268,7 +207,7 @@ export const clockOut = async (c: Context) => {
             success: true,
             data: {
                 clockOutTime,
-                totalHours: Math.round(totalHours * 100) / 100, // Round to 2 decimal places
+                totalHours: Math.round(totalHours * 100) / 100,
                 message: "Clocked out successfully",
             },
         };
@@ -287,28 +226,17 @@ export const clockOut = async (c: Context) => {
     }
 };
 
-// GET /attendance/my-records - Get attendance history
+// GET /healthcare-workers/{workerId}/attendance - Get attendance history
 export const getAttendanceRecords = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
-            return c.json({
-                success: false,
-                error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
-                },
-                timestamp: new Date().toISOString(),
-            }, 401);
-        }
-
+        const { workerId } = c.req.param();
         const query = c.req.query() as AttendanceRecordsQuery;
 
-        // Get worker ID for the current user
+        // Verify healthcare worker exists
         const worker = await db
-            .select({ workerId: healthcareWorkers.workerId })
+            .select()
             .from(healthcareWorkers)
-            .where(eq(healthcareWorkers.userId, userId))
+            .where(eq(healthcareWorkers.workerId, parseInt(workerId)))
             .limit(1);
 
         if (worker.length === 0) {
@@ -316,16 +244,14 @@ export const getAttendanceRecords = async (c: Context) => {
                 success: false,
                 error: {
                     code: "NOT_FOUND",
-                    message: "Healthcare worker profile not found",
+                    message: "Healthcare worker not found",
                 },
                 timestamp: new Date().toISOString(),
             }, 404);
         }
 
-        const workerId = worker[0].workerId;
-
         // Build where conditions
-        const conditions = [eq(attendanceRecords.workerId, workerId)];
+        const conditions = [eq(attendanceRecords.workerId, parseInt(workerId))];
         
         if (query.month) {
             const [year, month] = query.month.split('-');
@@ -412,4 +338,4 @@ export const getAttendanceRecords = async (c: Context) => {
             timestamp: new Date().toISOString(),
         }, 500);
     }
-}; 
+};

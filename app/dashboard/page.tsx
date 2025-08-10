@@ -1,5 +1,4 @@
 import { DashboardStats } from "@/components/dashboard/DashboardStats"
-import { ChartBarInteractive } from "@/components/dashboard/BarChart"
 
 const page = () => {
   return (

@@ -1,4 +1,4 @@
-import db from '@/db';
+import { db } from '@/db';;
 import { reports } from '@/db/schema/tables';
 import { generateReportRequestSchema } from './reports.types';
 import type { AppRouteHandler } from "../../../lib/types";

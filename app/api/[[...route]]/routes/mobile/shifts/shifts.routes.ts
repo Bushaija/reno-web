@@ -1,3 +1,4 @@
+// shifts.routes.ts
 import { createRoute, z } from "@hono/zod-openapi";
 
 import { 
@@ -8,15 +9,17 @@ import {
     AvailableShiftsQuerySchema
 } from "./shifts.types";
 
-// GET /shifts/my-shifts - Get current user's shifts
+// GET /users/{userId}/shifts - Get user's shifts
 export const getMyShifts = createRoute({
     method: "get",
-    path: "/shifts/my-shifts",
+    path: "/users/{userId}/shifts",
     tags: ["Mobile - Shifts"],
-    summary: "Get current user's shifts",
-    description: "Retrieve shifts assigned to the authenticated healthcare worker",
-    security: [{ bearerAuth: [] }],
+    summary: "Get user's shifts",
+    description: "Retrieve shifts assigned to the specified healthcare worker",
     request: {
+        params: z.object({
+            userId: z.string().regex(/^\d+$/, "User ID must be a valid number").transform(Number),
+        }),
         query: MyShiftsQuerySchema,
     },
     responses: {
@@ -28,8 +31,8 @@ export const getMyShifts = createRoute({
                 },
             },
         },
-        401: {
-            description: "Unauthorized - Invalid or missing token",
+        404: {
+            description: "User or shifts not found",
         },
         500: {
             description: "Internal server error",
@@ -43,8 +46,7 @@ export const getAvailableShifts = createRoute({
     path: "/shifts/available",
     tags: ["Mobile - Shifts"],
     summary: "Get available shifts for pickup",
-    description: "Retrieve shifts that are available for the healthcare worker to pick up",
-    security: [{ bearerAuth: [] }],
+    description: "Retrieve shifts that are available for healthcare workers to pick up",
     request: {
         query: AvailableShiftsQuerySchema,
     },
@@ -57,25 +59,22 @@ export const getAvailableShifts = createRoute({
                 },
             },
         },
-        401: {
-            description: "Unauthorized - Invalid or missing token",
-        },
         500: {
             description: "Internal server error",
         },
     },
 });
 
-// POST /shifts/:id/request - Request to pick up an available shift
+// POST /users/{userId}/shifts/{id}/request - Request to pick up an available shift
 export const requestShift = createRoute({
     method: "post",
-    path: "/shifts/{id}/request",
+    path: "/users/{userId}/shifts/{id}/request",
     tags: ["Mobile - Shifts"],
     summary: "Request to pick up an available shift",
     description: "Submit a request to pick up an available shift",
-    security: [{ bearerAuth: [] }],
     request: {
         params: z.object({
+            userId: z.string().regex(/^\d+$/, "User ID must be a valid number").transform(Number),
             id: z.string().transform(Number),
         }),
     },
@@ -91,11 +90,8 @@ export const requestShift = createRoute({
         400: {
             description: "Bad request - Invalid shift ID or shift not available",
         },
-        401: {
-            description: "Unauthorized - Invalid or missing token",
-        },
         404: {
-            description: "Shift not found",
+            description: "User or shift not found",
         },
         409: {
             description: "Conflict - Shift already requested or assigned",
@@ -104,4 +100,4 @@ export const requestShift = createRoute({
             description: "Internal server error",
         },
     },
-}); 
+});

@@ -1,4 +1,4 @@
-import db from '@/db';
+import { db } from '@/db';;
 import { staff, admins, healthcareWorkers, shifts, shiftAssignments, changeRequests, attendanceRecords } from '@/db/schema/tables';
 import { sql } from 'drizzle-orm';
 import type { AppRouteHandler } from '../../../lib/types';

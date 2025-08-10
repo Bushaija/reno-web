@@ -2,7 +2,6 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from "postgres";
 import * as schema from '@/db/schema/tables';
 import env from "@/env";
-// Ensure relational metadata (one/many helpers) is attached to tables
 import '@/db/schema/relations';
 
 export const connection = postgres(env.DATABASE_URL, {
@@ -17,4 +16,33 @@ export const db = drizzle(connection, {
 
 export type Database = typeof db;
 
-export default db;
+
+
+// ======== PRODUCTION ==========
+
+// import { config } from 'dotenv';
+// import * as schema from '@/db/schema/tables';
+// import { drizzle } from "drizzle-orm/neon-http";
+// import { neon } from "@neondatabase/serverless";
+
+// config({ path: '.env' });
+
+// const sql = neon(process.env.DATABASE_URL_!);
+// const db = drizzle({ client: sql, schema});
+
+// export type Database = typeof db;
+// export default db;
+
+
+// === second option ====
+
+// db/index.ts
+// import { drizzle } from "drizzle-orm/neon-http";
+// import { neon } from "@neondatabase/serverless";
+// import * as schema from '@/db/schema/tables';
+
+// const sql = neon(process.env.DATABASE_URL!);
+
+// export const db = drizzle(sql, { schema });
+
+// export type Database = typeof db;

@@ -13,28 +13,17 @@ import {
     ChangeRequestsListResponse 
 } from "./change-requests.types";
 
-// POST /change-requests - Submit a change request
+// POST /healthcare-workers/{workerId}/change-requests - Submit a change request
 export const submitChangeRequest = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
-            return c.json({
-                success: false,
-                error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
-                },
-                timestamp: new Date().toISOString(),
-            }, 401);
-        }
-
+        const { workerId } = c.req.param();
         const body = await c.req.json() as ChangeRequestSubmission;
 
-        // Get worker ID for the current user
+        // Verify healthcare worker exists
         const worker = await db
-            .select({ workerId: healthcareWorkers.workerId })
+            .select()
             .from(healthcareWorkers)
-            .where(eq(healthcareWorkers.userId, userId))
+            .where(eq(healthcareWorkers.workerId, parseInt(workerId)))
             .limit(1);
 
         if (worker.length === 0) {
@@ -42,15 +31,13 @@ export const submitChangeRequest = async (c: Context) => {
                 success: false,
                 error: {
                     code: "NOT_FOUND",
-                    message: "Healthcare worker profile not found",
+                    message: "Healthcare worker not found",
                 },
                 timestamp: new Date().toISOString(),
             }, 404);
         }
 
-        const workerId = worker[0].workerId;
-
-        // Check if shift exists and user is assigned to it
+        // Check if shift exists and worker is assigned to it
         const shift = await db
             .select({
                 shiftId: shifts.shiftId,
@@ -63,7 +50,7 @@ export const submitChangeRequest = async (c: Context) => {
             .where(
                 and(
                     eq(shifts.shiftId, body.shiftId),
-                    eq(shiftAssignments.workerId, workerId),
+                    eq(shiftAssignments.workerId, parseInt(workerId)),
                     eq(shifts.status, 'scheduled')
                 )
             )
@@ -80,14 +67,14 @@ export const submitChangeRequest = async (c: Context) => {
             }, 404);
         }
 
-        // Check if user already has a pending request for this shift
+        // Check for existing pending request
         const existingRequest = await db
             .select()
             .from(changeRequests)
             .where(
                 and(
                     eq(changeRequests.requestedShiftId, body.shiftId),
-                    eq(changeRequests.requesterId, workerId),
+                    eq(changeRequests.requesterId, parseInt(workerId)),
                     eq(changeRequests.status, 'pending')
                 )
             )
@@ -108,7 +95,7 @@ export const submitChangeRequest = async (c: Context) => {
         const [request] = await db
             .insert(changeRequests)
             .values({
-                requesterId: workerId,
+                requesterId: parseInt(workerId),
                 requestedShiftId: body.shiftId,
                 reason: body.reason,
                 status: 'pending',
@@ -137,26 +124,16 @@ export const submitChangeRequest = async (c: Context) => {
     }
 };
 
-// GET /change-requests/my-requests - Get user's change requests
+// GET /healthcare-workers/{workerId}/change-requests - Get worker's change requests
 export const getMyChangeRequests = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
-            return c.json({
-                success: false,
-                error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
-                },
-                timestamp: new Date().toISOString(),
-            }, 401);
-        }
+        const { workerId } = c.req.param();
 
-        // Get worker ID for the current user
+        // Verify healthcare worker exists
         const worker = await db
-            .select({ workerId: healthcareWorkers.workerId })
+            .select()
             .from(healthcareWorkers)
-            .where(eq(healthcareWorkers.userId, userId))
+            .where(eq(healthcareWorkers.workerId, parseInt(workerId)))
             .limit(1);
 
         if (worker.length === 0) {
@@ -164,13 +141,11 @@ export const getMyChangeRequests = async (c: Context) => {
                 success: false,
                 error: {
                     code: "NOT_FOUND",
-                    message: "Healthcare worker profile not found",
+                    message: "Healthcare worker not found",
                 },
                 timestamp: new Date().toISOString(),
             }, 404);
         }
-
-        const workerId = worker[0].workerId;
 
         // Get change requests with shift details
         const requests = await db
@@ -188,7 +163,7 @@ export const getMyChangeRequests = async (c: Context) => {
             })
             .from(changeRequests)
             .innerJoin(shifts, eq(changeRequests.requestedShiftId, shifts.shiftId))
-            .where(eq(changeRequests.requesterId, workerId))
+            .where(eq(changeRequests.requesterId, parseInt(workerId)))
             .orderBy(changeRequests.submittedAt);
 
         const response: ChangeRequestsListResponse = {
@@ -216,4 +191,4 @@ export const getMyChangeRequests = async (c: Context) => {
             timestamp: new Date().toISOString(),
         }, 500);
     }
-}; 
+};

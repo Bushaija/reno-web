@@ -22,8 +22,8 @@ export const navItems: NavItem[] = [
     items: [] // Empty array as there are no child items for Dashboard
   },
   {
-    title: 'Staff Management',
-    url: '/dashboard/staff-management',
+    title: 'Workforce Management',
+    url: '/dashboard/workforce-management',
     icon: 'clipboardList',
     shortcut: ['p', 'p'],
     isActive: false,
@@ -38,13 +38,22 @@ export const navItems: NavItem[] = [
     items: [] // No child items
   },
   {
-    title: 'Change Requests',
-    url: '/dashboard/change-requests',
+    title: 'Availability & Requests',
+    url: '/dashboard/availability-requests',
     icon: 'layers',
     shortcut: ['e', 'e'],
     isActive: false,
     items: [] // No child items
   },
+  {
+    title: 'Staff Predictor',
+    url: '/dashboard/staff-predictor',
+    icon: 'layers',
+    shortcut: ['e', 'e'],
+    isActive: false,
+    items: [] // No child items
+  },
+
   // {
   //   title: 'Assignments',
   //   url: '/dashboard/assignments',
@@ -61,11 +70,24 @@ export const navItems: NavItem[] = [
     isActive: true,
     items: [
       {
-        title: 'Attendance',
-        url: '/dashboard/reports/attendance',
+        title: 'Analytics',
+        url: '/dashboard/reports/analytics',
         icon: 'post',
         shortcut: ['a', 'a']
       },
+      {
+        title: 'Attendance Tracking',
+        url: '/dashboard/reports/attendance-tracking',
+        icon: 'post',
+        shortcut: ['a', 'a']
+      },
+      {
+        title: "Compliance",
+        url: "/dashboard/reports/compliance",
+        icon: 'post',
+        shortcut: ['c', 'c']
+
+      }
       // {
       //   title: 'Balance Sheet',
       //   url: '/dashboard/reports/balance-sheet',

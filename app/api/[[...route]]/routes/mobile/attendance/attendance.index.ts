@@ -7,4 +7,4 @@ const router = createRouter()
     .openapi(routes.clockOut, handlers.clockOut)
     .openapi(routes.getAttendanceRecords, handlers.getAttendanceRecords);
 
-export default router; 
+export default router;

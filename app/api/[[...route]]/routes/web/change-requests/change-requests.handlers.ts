@@ -1,4 +1,4 @@
-import db from '@/db';
+import { db } from '@/db';;
 import { changeRequests, healthcareWorkers, shifts, staff } from '@/db/schema/tables';
 import { eq, inArray } from 'drizzle-orm';
 import { updateChangeRequestRequestSchema } from './change-requests.types';

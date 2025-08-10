@@ -6,15 +6,17 @@ import {
     ChangeRequestSubmissionSchema
 } from "./change-requests.types";
 
-// POST /change-requests - Submit a change request
+// POST /healthcare-workers/{workerId}/change-requests - Submit a change request
 export const submitChangeRequest = createRoute({
     method: "post",
-    path: "/change-requests",
+    path: "/healthcare-workers/{workerId}/change-requests",
     tags: ["Mobile - Change Requests"],
     summary: "Submit a change request",
     description: "Submit a change request for a shift assignment",
-    security: [{ bearerAuth: [] }],
     request: {
+        params: z.object({
+            workerId: z.string().regex(/^\d+$/, "Worker ID must be a valid number").transform(Number),
+        }),
         body: {
             content: {
                 "application/json": {
@@ -35,8 +37,8 @@ export const submitChangeRequest = createRoute({
         400: {
             description: "Bad request - Invalid input data or shift not found",
         },
-        401: {
-            description: "Unauthorized - Invalid or missing token",
+        404: {
+            description: "Not found - Healthcare worker or shift not found",
         },
         409: {
             description: "Conflict - Already have a pending request for this shift",
@@ -47,14 +49,18 @@ export const submitChangeRequest = createRoute({
     },
 });
 
-// GET /change-requests/my-requests - Get user's change requests
+// GET /healthcare-workers/{workerId}/change-requests - Get worker's change requests
 export const getMyChangeRequests = createRoute({
     method: "get",
-    path: "/change-requests/my-requests",
+    path: "/healthcare-workers/{workerId}/change-requests",
     tags: ["Mobile - Change Requests"],
-    summary: "Get user's change requests",
-    description: "Retrieve all change requests submitted by the authenticated healthcare worker",
-    security: [{ bearerAuth: [] }],
+    summary: "Get worker's change requests",
+    description: "Retrieve all change requests submitted by the healthcare worker",
+    request: {
+        params: z.object({
+            workerId: z.string().regex(/^\d+$/, "Worker ID must be a valid number").transform(Number),
+        }),
+    },
     responses: {
         200: {
             description: "Change requests retrieved successfully",
@@ -64,11 +70,11 @@ export const getMyChangeRequests = createRoute({
                 },
             },
         },
-        401: {
-            description: "Unauthorized - Invalid or missing token",
+        404: {
+            description: "Not found - Healthcare worker not found",
         },
         500: {
             description: "Internal server error",
         },
     },
-}); 
+});

@@ -1,26 +1,26 @@
 import { Context } from "hono";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users, healthcareWorkers, staff } from "@/db/schema/tables";
+import { staff, healthcareWorkers } from "@/db/schema/tables";
 import { ProfileUpdateRequest, ProfileResponse, ProfileUpdateResponse } from "./profile.types";
 
-// GET /profile - Get current healthcare worker profile
+// GET /profile/:userId - Get healthcare worker profile by user ID
 export const getProfile = async (c: Context) => {
     try {
-        // Get user ID from JWT token (assuming it's set by auth middleware)
-        const userId = 26;
-        if (!userId) {
+        // Get user ID from route parameters
+        const userId = parseInt(c.req.param("userId"));
+        if (!userId || isNaN(userId)) {
             return c.json({
                 success: false,
                 error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
+                    code: "VALIDATION_ERROR",
+                    message: "Valid user ID is required",
                 },
                 timestamp: new Date().toISOString(),
-            }, 401);
+            }, 400);
         }
 
-        // Get healthcare worker profile with user details
+        // Get healthcare worker profile with staff details
         const workerProfile = await db
             .select({
                 workerId: healthcareWorkers.workerId,
@@ -31,15 +31,14 @@ export const getProfile = async (c: Context) => {
                 certification: healthcareWorkers.certification,
                 availableStart: healthcareWorkers.availableStart,
                 availableEnd: healthcareWorkers.availableEnd,
-                // user: {
-                //     id: users.id,
-                //     name: users.name,
-                //     email: users.email,
-                //     role: users.role,
-                // },
+                // Staff details
+                staffId: staff.staffId,
+                name: staff.name,
+                email: staff.email,
+                phone: staff.phone,
             })
             .from(healthcareWorkers)
-            .innerJoin(users, eq(healthcareWorkers.userId, userId))
+            .innerJoin(staff, eq(healthcareWorkers.userId, staff.staffId))
             .where(eq(healthcareWorkers.userId, userId))
             .limit(1);
 
@@ -56,24 +55,13 @@ export const getProfile = async (c: Context) => {
 
         const worker = workerProfile[0];
 
-        // Get phone number from staff table
-        const staffInfo = await db
-            .select({
-                phone: staff.phone,
-            })
-            .from(staff)
-            .where(eq(staff.staffId, userId))
-            .limit(1);
-
-        const phone = staffInfo.length > 0 ? staffInfo[0].phone : null;
-
         const response: ProfileResponse = {
             success: true,
             data: {
                 id: worker.workerId,
-                name: worker.user.name,
-                email: worker.user.email,
-                phone: phone || "",
+                name: worker.name,
+                email: worker.email,
+                phone: worker.phone || "",
                 profile: {
                     employeeId: worker.employeeId || "",
                     specialization: worker.specialization || "",
@@ -100,19 +88,20 @@ export const getProfile = async (c: Context) => {
     }
 };
 
-// PUT /profile - Update healthcare worker profile information
+// PUT /profile/:userId - Update healthcare worker profile information by user ID
 export const updateProfile = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
+        // Get user ID from route parameters
+        const userId = parseInt(c.req.param("userId"));
+        if (!userId || isNaN(userId)) {
             return c.json({
                 success: false,
                 error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
+                    code: "VALIDATION_ERROR",
+                    message: "Valid user ID is required",
                 },
                 timestamp: new Date().toISOString(),
-            }, 401);
+            }, 400);
         }
 
         const body = await c.req.json() as ProfileUpdateRequest;
@@ -136,11 +125,11 @@ export const updateProfile = async (c: Context) => {
         }
 
         // Update phone number in staff table if provided
-        if (body.phone) {
+        if (body.phone !== undefined) {
             await db
                 .update(staff)
                 .set({
-                    phone: body.phone,
+                    phone: body.phone || null, // Allow setting to null if empty string
                     updatedAt: new Date().toISOString(),
                 })
                 .where(eq(staff.staffId, userId));
@@ -150,24 +139,28 @@ export const updateProfile = async (c: Context) => {
         if (body.profile) {
             const updateData: any = {};
             
-            if (body.profile.availableStart) {
-                updateData.availableStart = body.profile.availableStart;
+            // Only update fields that are explicitly provided
+            if (body.profile.availableStart !== undefined) {
+                updateData.availableStart = body.profile.availableStart.trim() || null;
             }
-            if (body.profile.availableEnd) {
-                updateData.availableEnd = body.profile.availableEnd;
+            if (body.profile.availableEnd !== undefined) {
+                updateData.availableEnd = body.profile.availableEnd.trim() || null;
             }
-            if (body.profile.specialization) {
+            if (body.profile.specialization !== undefined) {
                 updateData.specialization = body.profile.specialization;
             }
-            if (body.profile.department) {
+            if (body.profile.department !== undefined) {
                 updateData.department = body.profile.department;
             }
-            if (body.profile.licenseNumber) {
+            if (body.profile.licenseNumber !== undefined) {
                 updateData.licenseNumber = body.profile.licenseNumber;
             }
-            if (body.profile.certification) {
+            if (body.profile.certification !== undefined) {
                 updateData.certification = body.profile.certification;
             }
+
+            // Note: employeeId is intentionally excluded from updates as it's typically immutable
+            // after creation, similar to how it's required during user creation
 
             if (Object.keys(updateData).length > 0) {
                 await db
@@ -194,4 +187,4 @@ export const updateProfile = async (c: Context) => {
             timestamp: new Date().toISOString(),
         }, 500);
     }
-}; 
+};

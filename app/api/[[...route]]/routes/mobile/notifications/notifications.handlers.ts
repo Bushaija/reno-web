@@ -1,9 +1,9 @@
 import { Context } from "hono";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { db } from "@/db";
 import { 
-    notifications, 
-    healthcareWorkers 
+    notifications,
+    users
 } from "@/db/schema/tables";
 import { 
     NotificationsQuery, 
@@ -12,25 +12,32 @@ import {
     MarkAllNotificationsReadResponse 
 } from "./notifications.types";
 
-// GET /notifications - Get user notifications
+// GET /users/{userId}/notifications - Get user notifications
 export const getNotifications = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
+        const { userId } = c.req.param();
+        const query = c.req.query() as NotificationsQuery;
+
+        // Verify user exists
+        const user = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, parseInt(userId)))
+            .limit(1);
+
+        if (user.length === 0) {
             return c.json({
                 success: false,
                 error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
+                    code: "NOT_FOUND",
+                    message: "User not found",
                 },
                 timestamp: new Date().toISOString(),
-            }, 401);
+            }, 404);
         }
 
-        const query = c.req.query() as NotificationsQuery;
-
         // Build where conditions
-        const conditions = [eq(notifications.userId, userId)];
+        const conditions = [eq(notifications.userId, parseInt(userId))];
         
         if (query.unread !== undefined) {
             conditions.push(eq(notifications.isRead, !query.unread));
@@ -56,11 +63,11 @@ export const getNotifications = async (c: Context) => {
 
         // Get unread count
         const unreadCount = await db
-            .select({ count: notifications.notificationId })
+            .select({ count: count() })
             .from(notifications)
             .where(
                 and(
-                    eq(notifications.userId, userId),
+                    eq(notifications.userId, parseInt(userId)),
                     eq(notifications.isRead, false)
                 )
             );
@@ -76,7 +83,7 @@ export const getNotifications = async (c: Context) => {
                     isRead: notification.isRead || false,
                     sentAt: notification.sentAt || new Date().toISOString(),
                 })),
-                unreadCount: unreadCount.length,
+                unreadCount: unreadCount[0]?.count || 0,
             },
         };
 
@@ -94,22 +101,10 @@ export const getNotifications = async (c: Context) => {
     }
 };
 
-// PUT /notifications/:id/read - Mark notification as read
+// PUT /users/{userId}/notifications/{id}/read - Mark notification as read
 export const markNotificationRead = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
-            return c.json({
-                success: false,
-                error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
-                },
-                timestamp: new Date().toISOString(),
-            }, 401);
-        }
-
-        const { id: notificationId } = c.req.param();
+        const { userId, id: notificationId } = c.req.param();
 
         // Check if notification exists and belongs to user
         const notification = await db
@@ -118,7 +113,7 @@ export const markNotificationRead = async (c: Context) => {
             .where(
                 and(
                     eq(notifications.notificationId, parseInt(notificationId)),
-                    eq(notifications.userId, userId)
+                    eq(notifications.userId, parseInt(userId))
                 )
             )
             .limit(1);
@@ -162,19 +157,27 @@ export const markNotificationRead = async (c: Context) => {
     }
 };
 
-// PUT /notifications/read-all - Mark all notifications as read
+// PUT /users/{userId}/notifications/read-all - Mark all notifications as read
 export const markAllNotificationsRead = async (c: Context) => {
     try {
-        const userId = c.get("userId");
-        if (!userId) {
+        const { userId } = c.req.param();
+
+        // Verify user exists
+        const user = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, parseInt(userId)))
+            .limit(1);
+
+        if (user.length === 0) {
             return c.json({
                 success: false,
                 error: {
-                    code: "UNAUTHORIZED",
-                    message: "Authentication required",
+                    code: "NOT_FOUND",
+                    message: "User not found",
                 },
                 timestamp: new Date().toISOString(),
-            }, 401);
+            }, 404);
         }
 
         // Mark all unread notifications as read
@@ -186,7 +189,7 @@ export const markAllNotificationsRead = async (c: Context) => {
             })
             .where(
                 and(
-                    eq(notifications.userId, userId),
+                    eq(notifications.userId, parseInt(userId)),
                     eq(notifications.isRead, false)
                 )
             );
@@ -208,4 +211,4 @@ export const markAllNotificationsRead = async (c: Context) => {
             timestamp: new Date().toISOString(),
         }, 500);
     }
-}; 
+};

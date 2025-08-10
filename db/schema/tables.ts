@@ -110,6 +110,8 @@ export const healthcareWorkers = pgTable("healthcare_workers", {
 	availableStart: time("available_start"),
 	availableEnd: time("available_end"),
 	createdAt: timestamp("created_at", { mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	maxWeeklyHours: integer("max_weekly_hours").default(40),
+	currentWeeklyHours: integer("current_weekly_hours").default(0),
 }, (table) => [
 	index("idx_healthcare_workers_employee_id").using("btree", table.employeeId.asc().nullsLast().op("text_ops")),
 	foreignKey({
@@ -129,6 +131,8 @@ export const shifts = pgTable("shifts", {
 	maxStaff: integer("max_staff").default(1),
 	notes: text(),
 	status: shiftStatus().default('scheduled'),
+	acuityScore: integer("acuity_score").default(0), // 1 - 5 scale (FROM EHR API)
+	requiredStaff: integer("required_staff").default(1),
 	createdAt: timestamp("created_at", { mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [

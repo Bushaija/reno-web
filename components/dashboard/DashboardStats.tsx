@@ -1,10 +1,11 @@
 "use client"
 
 import { Percent, Building, Users, Clock, AlertCircle } from "lucide-react"
-import { StatCard } from "@/components/dashboard/StatCard"
+import { StatCard, StaffingStatusCard, ComplianceAlertsCard, CriticalItemsCard } from "@/components/dashboard/StatCards"
 import { StatCardSkeleton } from "@/components/skeletons"
 import { useDashboardStats } from "@/features/dashboard/api"
 import { authClient } from "@/lib/auth-client"
+
 
 export interface DashboardStatsProps {
   executedCount?: number
@@ -16,28 +17,36 @@ export function DashboardStats({ executedCount: executedProp, facilityId: facili
 
   const { data: user } = authClient.useSession()
 
-  console.log("user", user)
-
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCardSkeleton />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
+      <div className="space-y-6">
+        {/* Basic stats grid */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+        {/* Advanced cards grid */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard
-          title="Error Loading Stats"
-          value="--"
-          icon={<AlertCircle className="h-4 w-4 text-destructive" />}
-          description="Failed to load dashboard statistics"
-        />
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatCard
+            title="Error Loading Stats"
+            value="--"
+            icon={<AlertCircle className="h-4 w-4 text-destructive" />}
+            description="Failed to load dashboard statistics"
+          />
+        </div>
       </div>
     )
   }
@@ -47,34 +56,44 @@ export function DashboardStats({ executedCount: executedProp, facilityId: facili
   const stats = dashboardStats;
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
-      <StatCard
-        title="Total Staff"
-        value={`${stats?.healthcareWorkerCount ?? 0}`}
-        icon={<Users className="h-4 w-4 text-muted-foreground" />}
-        description="Active healthcare workers"
-      />
+    <div className="space-y-6">
+      {/* Basic Statistics */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard
+          title="Overtime Risks"
+          value={3}
+          icon={<Users className="h-4 w-4 text-muted-foreground" />}
+          description="Active healthcare workers"
+        />
 
-      <StatCard
-        title="Active Shifts"
-        value={`${stats?.shiftCount ?? 0}`}
-        icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-        description="Currently in progress"
-      />
+        <StatCard
+          title="Critical Alert"
+          value={1}
+          icon={<Users className="h-4 w-4 text-muted-foreground" />}
+          description="Active healthcare workers"
+        />
 
-      <StatCard
-        title="Pending Requests"
-        value={`${stats?.pendingChangeRequestsCount ?? 0}`}
-        icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}
-        description="Awaiting approval"
-      />
+        <StatCard
+          title="Active Shifts"
+          value={`${stats?.shiftCount ?? 0}`}
+          icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+          description="Currently in progress"
+        />
 
-      {/* <StatCard
-        title="Attendance Rate"
-        value={stats?.attendanceRate ? `${stats.attendanceRate.toFixed(1)}%` : "No Data"}
-        icon={<Percent className="h-4 w-4 text-muted-foreground" />}
-        description="Present vs total records"
-      /> */}
+        <StatCard
+          title="Pending Requests"
+          value={`${stats?.pendingChangeRequestsCount ?? 0}`}
+          icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}
+          description="Awaiting approval"
+        /> 
+      </div>
+
+      {/* Advanced Dashboard Cards */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <StaffingStatusCard />
+        {/* <ComplianceAlertsCard /> */}
+        <CriticalItemsCard />
+      </div>
     </div>
   )
 } 

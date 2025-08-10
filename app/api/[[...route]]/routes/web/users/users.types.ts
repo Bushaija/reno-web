@@ -60,7 +60,7 @@ export const createUserRequestSchema = z.object({
     email: z.string().email(),
     // password: z.string(),
     phone: z.string().optional(),
-    role: z.enum(["admin", "healthcare_worker"]),
+    role: z.enum(["healthcare_worker", "admin"]),
     profile: userProfileSchema.extend({
         certification: z.string().optional(),
     }),
