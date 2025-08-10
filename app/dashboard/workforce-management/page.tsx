@@ -1,4 +1,4 @@
-import UsersPage from '@/components/data-table/resources/users.page'
+import UsersPage from '@/components/data-table/resources/staff.page'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 

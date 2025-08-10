@@ -1,9 +1,12 @@
-import React from 'react'
+"use client";
+// @ts-nocheck
 
-const AutoGenerate = () => {
+import AutoGenerateForm from "@/components/api-forms/auto-generate-form";
+
+export default function AutoGeneratePage() {
   return (
-    <div>Auto Generate</div>
-  )
+    <div className="p-4 max-w-3xl mx-auto space-y-6">
+      <AutoGenerateForm />
+    </div>
+  );
 }
-
-export default AutoGenerate

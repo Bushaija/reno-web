@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import QueryProvider from "@/providers/query-provider";
+import ModalProvider from "@/providers/modal-context";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -30,7 +31,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <QueryProvider>
-          {children}
+          <ModalProvider>
+            {children}
+          </ModalProvider>
         </QueryProvider>
       </body>
     </html>
