@@ -1,9 +1,8 @@
-import React from 'react'
+import AvailabilityManagement from '@/components/features/staff/availability/availability-management';
+import React from 'react';
 
-const Availability = () => {
-  return (
-    <div>Availability</div>
-  )
-}
+const AvailabilityPage = () => {
+  return <AvailabilityManagement />;
+};
 
-export default Availability
+export default AvailabilityPage;
