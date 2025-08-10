@@ -1,5 +1,6 @@
-"use client"
 // @ts-nocheck
+/* eslint-disable */
+"use client"
 
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useCreateShiftPublic } from "@/features/shifts/api/useCreateShiftPublic"
+import { useCreateShift } from "@/features/shifts/api/useCreateShiftPublic"
 import { toast } from "sonner"
 
 // TODO: Replace with real fetched data
@@ -30,7 +31,7 @@ export type FormState = {
   department_id: string
   start_time: string
   end_time: string
-  shift_type: "day" | "night"
+  shift_type: "day" | "night" | "evening" | "weekend" | "holiday" | "on_call" | "float"
   required_nurses: string
   required_skills: string[]
   patient_ratio_target: string
@@ -39,7 +40,7 @@ export type FormState = {
 
 export default function CreateShiftForm() {
   const router = useRouter()
-  const { mutateAsync, isPending } = useCreateShiftPublic()
+  const { mutateAsync, isPending } = useCreateShift()
 
   const [form, setForm] = useState<FormState>({
     department_id: "1",
@@ -149,8 +150,19 @@ export default function CreateShiftForm() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="day">Day</SelectItem>
-                  <SelectItem value="night">Night</SelectItem>
+                  {[
+                    "day",
+                    "night",
+                    "evening",
+                    "weekend",
+                    "holiday",
+                    "on_call",
+                    "float",
+                  ].map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

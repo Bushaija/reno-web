@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { ShiftType } from "@/types/scheduling";
 
 export interface CreateShiftDTO {
-  department_id: number
-  start_time: string // ISO
-  end_time: string // ISO
-  shift_type: "day" | "night"
-  required_nurses: number
-  required_skills: number[]
-  patient_ratio_target: number
-  notes?: string
+  department_id: number;
+  start_time: string; // ISO
+  end_time: string; // ISO
+  shift_type: ShiftType;
+  required_nurses: number;
+  required_skills: number[];
+  patient_ratio_target: number;
+  notes?: string;
 }
 
 interface CreateShiftResponse {
@@ -33,7 +34,7 @@ async function postShift(data: CreateShiftDTO): Promise<CreateShiftResponse> {
   return (await res.json()) as CreateShiftResponse
 }
 
-export function useCreateShiftPublic() {
+export function useCreateShift() {
   const queryClient = useQueryClient()
   return useMutation<CreateShiftResponse, Error, CreateShiftDTO>({
     mutationFn: postShift,

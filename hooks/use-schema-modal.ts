@@ -62,139 +62,60 @@ export function useSchemaModal(): UseSchemaModalReturn {
 export function usePredefinedSchemaModal() {
   const { openModal } = useSchemaModal()
 
-  const getUserSchema = (onSubmit?: (data: any) => Promise<void>): ModalSchema => ({
-    id: 'user-modal',
-    title: 'User Management',
-    description: 'Create or edit user information',
+  const getNurseSchema = (onSubmit?: (data: any) => Promise<void>): ModalSchema => ({
+    id: 'nurse-modal',
+    title: 'Nurse Profile',
+    description: 'Create or edit nurse profile',
     size: 'lg',
     sections: [
       {
-        title: 'Basic Information',
+        title: 'Personal Details',
         fields: [
-          {
-            name: 'name',
-            label: 'Full Name',
-            type: 'text',
-            required: true,
-            placeholder: 'Enter full name',
-            validation: [
-              { type: 'required', message: 'Name is required' },
-              { type: 'min', value: 2, message: 'Name must be at least 2 characters' }
-            ]
-          },
-          {
-            name: 'email',
-            label: 'Email Address',
-            type: 'email',
-            required: true,
-            placeholder: 'Enter email address',
-            validation: [
-              { type: 'required', message: 'Email is required' },
-              { type: 'email', message: 'Please enter a valid email' }
-            ]
-          },
-          // {
-          //   name: 'password',
-          //   label: 'Password',
-          //   type: 'password',
-          //   required: true,
-          //   placeholder: 'Enter password',
-          //   validation: [
-          //     { type: 'required', message: 'Password is required' },
-          //     { type: 'min', value: 6, message: 'Password must be at least 6 characters' }
-          //   ]
-          // },
-          {
-            name: 'phone',
-            label: 'Phone Number',
-            type: 'text',
-            placeholder: 'Enter phone number',
-            validation: [
-              { type: 'pattern', value: /^[\+]?[0-9]{10,16}$/, message: 'Please enter a valid phone number' }
-            ]
-          },
-          {
-            name: 'role',
-            label: 'Role',
-            type: 'select',
-            required: true,
-            defaultValue: 'healthcare_worker',
-            options: [
-              { label: 'Healthcare Worker', value: 'healthcare_worker' },
-              { label: 'Admin', value: 'admin' }
-            ]
-          }
+          { name: 'user.name', label: 'Full Name', type: 'text', required: true },
+          { name: 'user.email', label: 'Email', type: 'email', required: true },
+          { name: 'user.phone', label: 'Phone', type: 'text' },
+          { name: 'user.emergency_contact_name', label: 'Emergency Contact Name', type: 'text' },
+          { name: 'user.emergency_contact_phone', label: 'Emergency Contact Phone', type: 'text' }
         ]
       },
       {
-        title: 'Professional Profile',
+        title: 'Employment Details',
         fields: [
-          {
-            name: 'profile.employeeId',
-            label: 'Employee ID',
-            type: 'text',
-            placeholder: 'Enter employee ID'
-          },
-          {
-            name: 'profile.specialization',
-            label: 'Specialization',
-            type: 'text',
-            placeholder: 'Enter specialization'
-          },
-          {
-            name: 'profile.availableStart',
-            label: 'Available Start Time',
-            type: 'time',
-            placeholder: 'Select start time'
-          },
-          {
-            name: 'profile.availableEnd',
-            label: 'Available End Time',
-            type: 'time',
-            placeholder: 'Select end time'
-          },
-          {
-            name: 'profile.department',
-            label: 'Department',
-            type: 'text',
-            placeholder: 'Enter department'
-          },
-          {
-            name: 'profile.licenseNumber',
-            label: 'License Number',
-            type: 'text',
-            placeholder: 'Enter license number'
-          },
-          {
-            name: 'profile.certification',
-            label: 'Certification',
-            type: 'textarea',
-            placeholder: 'Enter certifications',
-            rows: 3
-          }
+          { name: 'employee_id', label: 'Employee ID', type: 'text', required: true },
+          { name: 'specialization', label: 'Specialization', type: 'text' },
+          { name: 'license_number', label: 'License Number', type: 'text' },
+          { name: 'employment_type', label: 'Employment Type', type: 'select', options: [
+              { label: 'Full Time', value: 'full_time' },
+              { label: 'Part Time', value: 'part_time' },
+              { label: 'Per Diem', value: 'per_diem' },
+              { label: 'Travel', value: 'travel' }
+            ], defaultValue: 'full_time' },
+          { name: 'base_hourly_rate', label: 'Base Hourly Rate', type: 'number', step: 0.01 },
+          { name: 'max_hours_per_week', label: 'Max Hours / Week', type: 'number' }
+        ]
+      },
+      {
+        title: 'Shift Preferences',
+        fields: [
+          { name: 'preferences.prefers_day_shifts', label: 'Prefers Day Shifts', type: 'checkbox' },
+          { name: 'preferences.prefers_night_shifts', label: 'Prefers Night Shifts', type: 'checkbox' },
+          { name: 'preferences.weekend_availability', label: 'Weekend Availability', type: 'checkbox' }
         ]
       }
     ],
-    submitButton: {
-      text: 'Save User',
-      loadingText: 'Saving...',
-      variant: 'default'
-    },
-    cancelButton: {
-      text: 'Cancel',
-      variant: 'outline'
-    },
-    onSubmit: onSubmit
+    submitButton: { text: 'Save Nurse', loadingText: 'Saving...' },
+    cancelButton: { text: 'Cancel', variant: 'outline' },
+    onSubmit,
   })
 
-  const openUserModal = useCallback((initialData?: any) => {
-    const userSchema = getUserSchema()
-    openModal(userSchema, initialData)
+  const openNurseModal = useCallback((initialData?: any) => {
+    const nurseSchema = getNurseSchema()
+    openModal(nurseSchema, initialData)
   }, [openModal])
 
-  const openUserModalWithSubmit = useCallback((initialData?: any, onSubmit?: (data: any) => Promise<void>) => {
-    const userSchema = getUserSchema(onSubmit)
-    openModal(userSchema, initialData)
+  const openNurseModalWithSubmit = useCallback((initialData?: any, onSubmit?: (data: any) => Promise<void>) => {
+    const nurseSchema = getNurseSchema(onSubmit)
+    openModal(nurseSchema, initialData)
   }, [openModal])
 
   const openSettingsModal = useCallback((initialData?: any) => {
@@ -248,8 +169,8 @@ export function usePredefinedSchemaModal() {
   }, [openModal])
 
   return {
-    openUserModal,
-    openUserModalWithSubmit,
+    openNurseModal,
+    openNurseModalWithSubmit,
     openSettingsModal,
     openModal
   }

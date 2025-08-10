@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import SchedulerWrapper from "@/components/schedule/_components/view/schedular-view-filteration";
@@ -109,7 +110,7 @@ export default function ShiftCalendar() {
 
   // Handle new shift creation - refetch data from API
   const handleAddEvent = (event: Event) => {
-    // Refetch shifts from API to get the latest data
+    // For now we simply refetch after potential mutation elsewhere
     refetch();
   };
 
@@ -140,7 +141,8 @@ export default function ShiftCalendar() {
   }
 
   return (
-    <div>
+    <div className="relative">
+      
       {/* Debug info */}
       {/* <div className="mb-4 p-4 bg-gray-100 rounded">
         <h3 className="font-bold">Debug Info:</h3>
@@ -174,6 +176,7 @@ export default function ShiftCalendar() {
           }}
         />
       </SchedulerProvider>
+
     </div>
   );
 }

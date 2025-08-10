@@ -188,7 +188,7 @@ export function ReusableDataTable<TData, TValue>({
             {onAdd && (
               <Button size="sm" onClick={onAdd}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add New
+                Add New Nurse
               </Button>
             )}
           </div>
