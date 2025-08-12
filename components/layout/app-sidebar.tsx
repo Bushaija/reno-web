@@ -48,7 +48,7 @@ import { LogoIcon } from '@/components/logo'
 
 
 export const company = {
-  name: 'Nurse Shifts',
+  name: 'Shifts Med',
   logo: LogoIcon,
   plan: 'Adventist University of Central Africa'
 };

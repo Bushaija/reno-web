@@ -1,7 +1,7 @@
 import KBar from '@/components/kbar';
 import AppSidebar from '@/components/layout/app-sidebar';
 import Header from '@/components/layout/header';
-// import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from '@/components/ui/sonner';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
@@ -32,7 +32,7 @@ function DashboardClientLayout({
           <SidebarInset>
             <Header />
             {/* Global toast notifications for all dashboard routes */}
-            {/* <Toaster richColors closeButton position="bottom-right" /> */}
+            <Toaster richColors closeButton position="bottom-right" />
             <div className='p-4'>
               {children}
             </div>

@@ -215,3 +215,15 @@ export const createFatigueAssessmentSchema = z.object({
 export const fatigueQuerySchema = z.object({
   days: z.coerce.number().int().positive().default(30),
 });
+
+// Schema for a single nurse skill
+export const selectNurseSkillSchema = z.object({
+  skill_id: z.number().int(),
+  skill_name: z.string(),
+  skill_category: z.string(),
+  required_for_departments: z.array(z.string()).nullable(),
+  created_at: z.string(),
+});
+
+// Schema for the API response for a list of nurse skills
+export const nurseSkillsResponseSchema = z.array(selectNurseSkillSchema);

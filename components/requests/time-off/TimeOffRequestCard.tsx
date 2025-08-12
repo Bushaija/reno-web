@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@ui/button';
 import RequestStatusBadge from '@/components/requests/shared/RequestStatusBadge';
 import { Calendar, User, MessageSquare } from 'lucide-react';
+import { UpdateTimeOffRequestDialog } from '@/app/dashboard/requests/time-off/components';
 
 interface TimeOffRequestCardProps {
   request: TimeOffRequest;
@@ -17,7 +18,14 @@ const TimeOffRequestCard: React.FC<TimeOffRequestCardProps> = ({ request }) => {
       <CardHeader>
         <CardTitle className="flex justify-between items-center text-lg font-semibold">
           <span>{request.request_type.charAt(0).toUpperCase() + request.request_type.slice(1)} Leave</span>
-          <RequestStatusBadge status={request.status} />
+          <div className="flex items-center gap-2">
+            <RequestStatusBadge status={request.status} />
+            {request.status === 'pending' && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                ⏳ Requires Action
+              </span>
+            )}
+          </div>
         </CardTitle>
         <CardDescription className="pt-2">
           <div className="flex items-center text-sm text-muted-foreground">
@@ -39,9 +47,18 @@ const TimeOffRequestCard: React.FC<TimeOffRequestCardProps> = ({ request }) => {
       </CardContent>
       <CardFooter className="flex justify-end space-x-2">
         <Button variant="outline" size="sm">Details</Button>
-        {request.status === 'pending' && (
-          <Button size="sm">Take Action</Button>
-        )}
+        <UpdateTimeOffRequestDialog 
+          request={request}
+          onSuccess={() => {
+            // The hook will automatically refresh data
+            console.log("Time-off request updated successfully!");
+          }}
+          trigger={
+            <Button size="sm" variant={request.status === 'pending' ? 'default' : 'outline'}>
+              {request.status === 'pending' ? 'Take Action' : 'Update Status'}
+            </Button>
+          }
+        />
       </CardFooter>
     </Card>
   );

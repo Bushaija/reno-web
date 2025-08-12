@@ -20,10 +20,30 @@ import {
   addSkillSchema,
   fatigueAssessmentSchema,
   createFatigueAssessmentSchema,
-  fatigueQuerySchema
+  fatigueQuerySchema,
+  nurseSkillsResponseSchema
 } from "./nurses.types";
 
 const tags = ["Nurses"];
+
+// GET /nurses/skills - List all nurse skills
+export const getAllNurseSkills = createRoute({
+  path: "/nurses/skills",
+  method: "get",
+  tags,
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(
+      createSuccessResponseSchema(nurseSkillsResponseSchema),
+      "List of all nurse skills"
+    ),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(
+      unauthorizedSchema,
+      "Unauthorized"
+    ),
+  }
+});
+
+export type GetAllNurseSkillsRoute = typeof getAllNurseSkills;
 
 // GET /nurses - List all nurses
 export const list = createRoute({

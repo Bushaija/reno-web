@@ -228,12 +228,12 @@ export const navItems: NavItem[] = [
         icon: 'activity',
         shortcut: ['t', 'f']
       },
-      {
-        title: 'Workload Balance',
-        url: '/dashboard/staff/workload',
-        icon: 'balance-scale',
-        shortcut: ['t', 'w']
-      }
+      // {
+      //   title: 'Workload Balance',
+      //   url: '/dashboard/staff/workload',
+      //   icon: 'balance-scale',
+      //   shortcut: ['t', 'w']
+      // }
     ]
   },
 

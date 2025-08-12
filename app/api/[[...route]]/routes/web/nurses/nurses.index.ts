@@ -5,6 +5,7 @@ import * as routes from "./nurses.routes";
 
 const router = createRouter()
   // .use("/*", authContextMiddleware)
+  .openapi(routes.getAllNurseSkills, handlers.getAllNurseSkills)
   .openapi(routes.list, handlers.list)
   .openapi(routes.create, handlers.create)
   .openapi(routes.getOne, handlers.getOne)

@@ -89,6 +89,34 @@ const canAccessNurseData = (authContext: any, targetNurseId?: number) => {
   return false;
 };
 
+export const getAllNurseSkills: AppRouteHandler<any> = async (c) => {
+  try {
+    const skills = await db.query.nurseSkills.findMany();
+
+    const skillsData = skills.map(skill => ({
+      skill_id: skill.skillId,
+      skill_name: skill.skillName,
+      skill_category: skill.skillCategory,
+      required_for_departments: skill.requiredForDepartments,
+      created_at: skill.createdAt,
+    }));
+
+    return c.json({
+      success: true,
+      data: skillsData,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("Error fetching nurse skills:", error);
+    return c.json({
+      success: false,
+      message: "Failed to fetch nurse skills",
+      timestamp: new Date().toISOString()
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+}
+
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const query = c.req.query();
   const page = parseInt(query.page || "1");

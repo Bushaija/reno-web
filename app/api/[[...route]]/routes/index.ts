@@ -2,6 +2,7 @@ import createRouter from "../lib/create-app";
 import type { AppOpenAPI } from "../lib/types";
 
 import nurses from "./web/nurses/nurses.index";
+import departments from "./web/departments/departments.index";
 import shifts from "./web/shifts/shifts.index";  
 import scheduling from "./web/schedules/scheduling.index";
 import swapRequests from "./web/swap-requests/swap-requests.index";  
@@ -15,6 +16,7 @@ export function registerRoutes(app: AppOpenAPI) {
   return app
       .route('/', auth)
       .route('/', nurses)
+      .route('/', departments)
       .route('/', shifts)
       .route('/', scheduling)
       .route('/', swapRequests)
