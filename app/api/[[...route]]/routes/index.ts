@@ -1,33 +1,32 @@
 import createRouter from "../lib/create-app";
-// import { BASE_PATH } from "../lib/constants";
 import type { AppOpenAPI } from "../lib/types";
 
-import index from "./index.route";
-import users from "./web/users/users.index";
-import shifts from "./web/shifts/shifts.index";
-import shiftAssignments from "./web/shift-assignments/shift-assignments.index";
-import changeRequests from "./web/change-requests/change-requests.index";
+import nurses from "./web/nurses/nurses.index";
+import shifts from "./web/shifts/shifts.index";  
+import scheduling from "./web/schedules/scheduling.index";
+import swapRequests from "./web/swap-requests/swap-requests.index";  
+import timeOffRequests from "./web/time-off-requests/time-off-requests.index";
+import attendance from "./web/attendance/attendance.index";
+import notifications from "./web/notifications/notifications.index"; 
 import reports from "./web/reports/reports.index";
-import dashboard from "./web/dashboard/dashboard.index";
-import auth from "./web/auth/auth.index";
-import mobile from "./mobile/mobile.index";
+import auth from "./auth/auth.index";
 
 export function registerRoutes(app: AppOpenAPI) {
-    return app
-        .route('/', auth)
-        .route('/', index)
-        .route('/', users)
-        .route('/', shifts)
-        .route('/', shiftAssignments)
-        .route('/', changeRequests)
-        .route('/', reports)
-        .route('/', dashboard)
-        .route('/', mobile)
+  return app
+      .route('/', auth)
+      .route('/', nurses)
+      .route('/', shifts)
+      .route('/', scheduling)
+      .route('/', swapRequests)
+      .route('/', timeOffRequests)
+      .route('/', attendance)
+      .route('/', notifications)
+      .route('/', reports)
 };
 
 
 export const router = registerRoutes(
-    createRouter()
+  createRouter()
 );
 
 export type router = typeof router;

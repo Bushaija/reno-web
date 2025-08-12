@@ -2,9 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { InferRequestType, InferResponseType } from 'hono';
 import { honoClient, handleHonoResponse } from '@/lib/hono';
-import type { Shift } from '@/app/api/[[...route]]/routes/web/shifts/shifts.types';
+import type { SelectShift } from '@/app/api/[[...route]]/routes/web/shifts/shifts.types';
 
-const shiftApi = honoClient.api['/admin/shifts'];
+// Alias for readability
+export type Shift = SelectShift;
+
+const shiftApi = honoClient.api['/shifts'];
 const $create = shiftApi.$post;
 
 // Fetch all shifts (with optional filters/pagination)
@@ -26,7 +29,7 @@ export function useShifts(params?: {
           pagination: any;
         };
       }>(
-        honoClient.api['/admin/shifts'].$get({
+        honoClient.api['/shifts'].$get({
           query: params ?? {},
           header: {},
           cookie: {},
@@ -45,22 +48,20 @@ export function useAllShifts() {
     queryFn: async () => {
       const res = await handleHonoResponse<{
         success: true;
-        data: {
-          shifts: Shift[];
-          pagination: any;
-        };
+        data: Shift[];
+        pagination: any;
       }>(
-        honoClient.api['/admin/shifts'].$get({
-          query: { limit: '1000' }, // Large limit to get all shifts
+        honoClient.api['/shifts'].$get({
+          query: { limit: '50' },
           header: {},
           cookie: {},
           param: {},
         })
       );
-      return res.data.shifts; // Return just the shifts array
+      return res.data; // Return the shifts array directly
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (React Query v5 uses gcTime instead of cacheTime)
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -76,8 +77,8 @@ export function useShiftsByWorker(workerId: number) {
           pagination: any;
         };
       }>(
-        honoClient.api['/admin/shifts'].$get({
-          query: { workerId: workerId.toString(), limit: '1000' },
+        honoClient.api['/shifts'].$get({
+          query: { workerId: workerId.toString(), limit: '50' },
           header: {},
           cookie: {},
           param: {},
@@ -102,8 +103,8 @@ export function useShiftsByDepartment(department: string) {
           pagination: any;
         };
       }>(
-        honoClient.api['/admin/shifts'].$get({
-          query: { department, limit: '1000' },
+        honoClient.api['/shifts'].$get({
+          query: { department, limit: '50' },
           header: {},
           cookie: {},
           param: {},
@@ -128,8 +129,8 @@ export function useShiftsByStatus(status: 'scheduled' | 'in_progress' | 'complet
           pagination: any;
         };
       }>(
-        honoClient.api['/admin/shifts'].$get({
-          query: { status, limit: '1000' },
+        honoClient.api['/shifts'].$get({
+          query: { status, limit: '50' },
           header: {},
           cookie: {},
           param: {},
@@ -151,7 +152,7 @@ export function useShift(id: number) {
         success: true;
         data: Shift;
       }>(
-        honoClient.api['/admin/shifts/:id'].$get({
+        honoClient.api['/shifts/:id'].$get({
           param: { id: id.toString() },
           header: {},
           cookie: {},
@@ -167,11 +168,12 @@ export function useShift(id: number) {
 
 // Define the request type based on the Zod schema
 export interface CreateShiftRequest {
-  workerId: number;
+  departmentId: number;
   startTime: string;
   endTime: string;
-  department: string;
-  maxStaff?: number;
+  shiftType: string;
+  requiredNurses: number;
+  requiredSkills?: number[];
   notes?: string;
   status?: "scheduled" | "confirmed" | "cancelled";
 }
@@ -183,7 +185,7 @@ const createShift = async (data: CreateShiftRequest) => {
   console.log('Sending data:', data);
   
   const res = await $create({
-    ...data,
+    json: data,
     query: {},
     header: {},
     cookie: {},
@@ -227,7 +229,7 @@ export const useCreateShift = () => {
 //   return useMutation({
 //     mutationFn: async (data: any) => {
 //       return handleHonoResponse(
-//         honoClient.api['/admin/shifts'].$post(data)
+//         honoClient.api['sss'].$post(data)
 //       );
 //     },
 //     onSuccess: () => {

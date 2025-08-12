@@ -18,7 +18,7 @@ import { toast } from "sonner"
 const departments = [
   { id: 1, name: "ICU" },
   { id: 2, name: "Emergency" },
-  { id: 3, name: "Med/Surg" },
+  { id: 3, name: "Medical/Surgical" },
 ]
 
 const skills = [

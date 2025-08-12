@@ -17,7 +17,7 @@ export default function RegisterPage() {
         const formData = new FormData(e.target as HTMLFormElement);
         const name = formData.get('name') as string;
         const email = formData.get('email') as string;
-        const password = formData.get('pwd') as string;    
+        const password = formData.get('pwd') as string;
 
         try {
             const registrationResult = await authClient.signUp.email({

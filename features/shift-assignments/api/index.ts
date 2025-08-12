@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { honoClient, handleHonoResponse } from '@/lib/hono';
-import type { ShiftAssignment } from '@/app/api/[[...route]]/routes/web/shift-assignments/shift-assignments.types';
+import type { ShiftAssignment } from '@/app/api/[[...route]]/routes/web/shifts/shifts.types';
 
 // Create a shift assignment
 export function useCreateShiftAssignment() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useMutation<ShiftAssignment, Error, { id: string | number; workerId: number }>({
     mutationFn: async ({ id, ...data }: { id: string | number; workerId: number }) => {
       return handleHonoResponse(
         honoClient.api['/admin/shifts/:id/assignments'].$post({

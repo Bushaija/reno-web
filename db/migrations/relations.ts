@@ -4,7 +4,7 @@ import { users, healthcareWorkers, nurseAvailability, admins, nurseSkillAssignme
 export const healthcareWorkersRelations = relations(healthcareWorkers, ({one, many}) => ({
 	user: one(users, {
 		fields: [healthcareWorkers.userId],
-		references: [users.userId]
+		references: [users.id]
 	}),
 	nurseAvailabilities: many(nurseAvailability),
 	nurseSkillAssignments: many(nurseSkillAssignments),
@@ -32,7 +32,7 @@ export const nurseAvailabilityRelations = relations(nurseAvailability, ({one}) =
 export const adminsRelations = relations(admins, ({one, many}) => ({
 	user: one(users, {
 		fields: [admins.userId],
-		references: [users.userId]
+		references: [users.id]
 	}),
 	patientAcuities: many(patientAcuity),
 	timeOffRequests: many(timeOffRequests),
@@ -183,7 +183,7 @@ export const feedbackRelations = relations(feedback, ({one}) => ({
 export const notificationsRelations = relations(notifications, ({one}) => ({
 	user: one(users, {
 		fields: [notifications.userId],
-		references: [users.userId]
+		references: [users.id]
 	}),
 }));
 

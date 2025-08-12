@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { ShiftType } from "@/types/scheduling";
+import { honoClient, handleHonoResponse } from '@/lib/hono';
 
 export interface CreateShiftDTO {
   department_id: number;
@@ -19,19 +20,29 @@ interface CreateShiftResponse {
 }
 
 async function postShift(data: CreateShiftDTO): Promise<CreateShiftResponse> {
-  const res = await fetch("/shifts", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  })
+  // Convert DTO snake_case fields to camelCase expected by API
+  const payload = {
+    departmentId: data.department_id,
+    startTime: data.start_time,
+    endTime: data.end_time,
+    shiftType: data.shift_type,
+    requiredNurses: data.required_nurses,
+    requiredSkills: data.required_skills,
+    patientRatioTarget: data.patient_ratio_target,
+    notes: data.notes,
+  };
 
-  if (!res.ok) {
-    const errorText = await res.text()
-    throw new Error(errorText || "Failed to create shift")
-  }
-  return (await res.json()) as CreateShiftResponse
+  const response = await handleHonoResponse<CreateShiftResponse>(
+    honoClient.api['/shifts'].$post({
+      json: payload,
+      query: {},
+      header: {},
+      cookie: {},
+      param: {},
+    })
+  );
+
+  return response;
 }
 
 export function useCreateShift() {

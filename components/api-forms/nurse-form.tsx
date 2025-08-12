@@ -29,6 +29,13 @@ const nurseFormSchema = z.object({
   prefers_day_shifts: z.boolean().default(false).optional(),
   prefers_night_shifts: z.boolean().default(false).optional(),
   weekend_availability: z.boolean().default(false).optional(),
+  certification: z.string().min(1, "Certification is required"),
+  hire_date: z.string().min(1, "Hire date is required"),
+  overtime_rate: z.string().min(1, "Overtime rate is required"),
+  max_consecutive_days: z.string().min(1, "Max consecutive days is required"),
+  min_hours_between_shifts: z.string().min(1, "Min hours between shifts is required"),
+  holiday_availability: z.boolean().default(false).optional(),
+  float_pool_member: z.boolean().default(false).optional(),
 })
 
 export type NurseFormData = z.infer<typeof nurseFormSchema>
@@ -66,6 +73,13 @@ export function NurseForm({ onSuccess, onCancel, initialData, mode = "create" }:
       prefers_day_shifts: false,
       prefers_night_shifts: false,
       weekend_availability: false,
+      certification: "",
+      hire_date: Date.now(),
+      overtime_rate: "",
+      max_consecutive_days: "6",
+      min_hours_between_shifts: "8",
+      holiday_availability: false,
+      float_pool_member: false,
     },
   })
 
@@ -82,14 +96,19 @@ export function NurseForm({ onSuccess, onCancel, initialData, mode = "create" }:
         employee_id: data.employee_id,
         specialization: data.specialization,
         license_number: data.license_number,
+        certification: data.certification ?? "",
+        hire_date: data.hire_date ?? "",
         employment_type: data.employment_type,
         base_hourly_rate: parseFloat(data.base_hourly_rate),
+        overtime_rate: parseFloat(String((data as any).overtime_rate || 0)),
         max_hours_per_week: parseFloat(data.max_hours_per_week),
-        preferences: {
-          prefers_day_shifts: data.prefers_day_shifts,
-          prefers_night_shifts: data.prefers_night_shifts,
-          weekend_availability: data.weekend_availability,
-        },
+        max_consecutive_days: parseInt(((data as any).max_consecutive_days ?? "6"), 10),
+        min_hours_between_shifts: parseInt(((data as any).min_hours_between_shifts ?? "8"), 10),
+        prefers_day_shifts: data.prefers_day_shifts,
+        prefers_night_shifts: data.prefers_night_shifts,
+        weekend_availability: data.weekend_availability,
+        holiday_availability: (data as any).holiday_availability ?? false,
+        float_pool_member: (data as any).float_pool_member ?? false,
       }
 
       if (mode === "create") {
@@ -158,6 +177,16 @@ export function NurseForm({ onSuccess, onCancel, initialData, mode = "create" }:
             {errors.license_number && <p className="text-sm text-red-500">{errors.license_number.message}</p>}
           </div>
           <div className="space-y-2">
+            <Label htmlFor="certification">Certification *</Label>
+            <Input id="certification" placeholder="BLS, ACLS" {...register("certification")} className={errors.certification ? "border-red-500" : ""} />
+            {errors.certification && <p className="text-sm text-red-500">{errors.certification.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="hire_date">Hire Date *</Label>
+            <Input id="hire_date" type="date" {...register("hire_date")} className={errors.hire_date ? "border-red-500" : ""} />
+            {errors.hire_date && <p className="text-sm text-red-500">{errors.hire_date.message}</p>}
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="employment_type">Employment Type *</Label>
             <Select value={watch("employment_type")} onValueChange={(val: "full_time" | "part_time" | "per_diem") => setValue("employment_type", val)}>
               <SelectTrigger>
@@ -184,6 +213,23 @@ export function NurseForm({ onSuccess, onCancel, initialData, mode = "create" }:
             {errors.max_hours_per_week && <p className="text-sm text-red-500">{errors.max_hours_per_week.message}</p>}
           </div>
         </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="overtime_rate">Overtime Rate *</Label>
+            <Input id="overtime_rate" type="number" step="0.01" placeholder="57.75" {...register("overtime_rate")} className={errors.overtime_rate ? "border-red-500" : ""} />
+            {errors.overtime_rate && <p className="text-sm text-red-500">{errors.overtime_rate.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="max_consecutive_days">Max Consecutive Days *</Label>
+            <Input id="max_consecutive_days" type="number" placeholder="6" {...register("max_consecutive_days")} className={errors.max_consecutive_days ? "border-red-500" : ""} />
+            {errors.max_consecutive_days && <p className="text-sm text-red-500">{errors.max_consecutive_days.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="min_hours_between_shifts">Min Hours Between Shifts *</Label>
+            <Input id="min_hours_between_shifts" type="number" placeholder="8" {...register("min_hours_between_shifts")} className={errors.min_hours_between_shifts ? "border-red-500" : ""} />
+            {errors.min_hours_between_shifts && <p className="text-sm text-red-500">{errors.min_hours_between_shifts.message}</p>}
+          </div>
+        </div>
       </div>
 
       {/* Preferences */}
@@ -201,6 +247,14 @@ export function NurseForm({ onSuccess, onCancel, initialData, mode = "create" }:
           <div className="flex items-center space-x-2">
             <Checkbox id="weekend_availability" checked={watch("weekend_availability")} onCheckedChange={(v: boolean | "indeterminate") => setValue("weekend_availability", v as boolean)} />
             <Label htmlFor="weekend_availability">Weekend Availability</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="holiday_availability" checked={watch("holiday_availability")} onCheckedChange={(v: boolean | "indeterminate") => setValue("holiday_availability", v as boolean)} />
+            <Label htmlFor="holiday_availability">Holiday Availability</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox id="float_pool_member" checked={watch("float_pool_member")} onCheckedChange={(v: boolean | "indeterminate") => setValue("float_pool_member", v as boolean)} />
+            <Label htmlFor="float_pool_member">Float Pool Member</Label>
           </div>
         </div>
       </div>

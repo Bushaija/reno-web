@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { GenerateScheduleDTO, GenerateScheduleResponse } from "@/types/scheduling";
+import { honoClient, handleHonoResponse } from '@/lib/hono';
 
 // Auto-generate leverages the same /scheduling/generate endpoint but
 // provides a more opinionated UI experience (e.g., pre-filled options)
@@ -8,17 +9,15 @@ import type { GenerateScheduleDTO, GenerateScheduleResponse } from "@/types/sche
 async function postAutoGenerateSchedule(
   data: GenerateScheduleDTO,
 ): Promise<GenerateScheduleResponse> {
-  const res = await fetch("/scheduling/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(errorText || "Failed to auto-generate schedule");
-  }
-  return (await res.json()) as GenerateScheduleResponse;
+  return handleHonoResponse<GenerateScheduleResponse>(
+    honoClient.api['/scheduling/generate'].$post({
+      json: data,
+      query: {},
+      header: {},
+      cookie: {},
+      param: {},
+    })
+  );
 }
 
 export function useAutoGenerateSchedule() {

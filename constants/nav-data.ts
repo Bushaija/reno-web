@@ -257,18 +257,18 @@ export const navItems: NavItem[] = [
         icon: 'shuffle',
         shortcut: ['r', 's']
       },
-      {
-        title: 'Swap Opportunities',
-        url: '/dashboard/requests/opportunities',
-        icon: 'search',
-        shortcut: ['r', 'o']
-      },
-      {
-        title: 'Request Approvals',
-        url: '/dashboard/requests/approvals',
-        icon: 'check-circle',
-        shortcut: ['r', 'a']
-      }
+      // {
+      //   title: 'Swap Opportunities',
+      //   url: '/dashboard/requests/opportunities',
+      //   icon: 'search',
+      //   shortcut: ['r', 'o']
+      // },
+      // {
+      //   title: 'Request Approvals',
+      //   url: '/dashboard/requests/approvals',
+      //   icon: 'check-circle',
+      //   shortcut: ['r', 'a']
+      // }
     ]
   },
 
@@ -321,24 +321,24 @@ export const navItems: NavItem[] = [
         icon: 'brain',
         shortcut: ['p', 's']
       },
-      {
-        title: 'Demand Forecasting',
-        url: '/dashboard/analytics/demand-forecast',
-        icon: 'bar-chart',
-        shortcut: ['p', 'd']
-      },
-      {
-        title: 'Cost Analysis',
-        url: '/dashboard/analytics/cost-analysis',
-        icon: 'dollar-sign',
-        shortcut: ['p', 'c']
-      },
-      {
-        title: 'Performance Insights',
-        url: '/dashboard/analytics/performance',
-        icon: 'pie-chart',
-        shortcut: ['p', 'i']
-      }
+      // {
+      //   title: 'Demand Forecasting',
+      //   url: '/dashboard/analytics/demand-forecast',
+      //   icon: 'bar-chart',
+      //   shortcut: ['p', 'd']
+      // },
+      // {
+      //   title: 'Cost Analysis',
+      //   url: '/dashboard/analytics/cost-analysis',
+      //   icon: 'dollar-sign',
+      //   shortcut: ['p', 'c']
+      // },
+      // {
+      //   title: 'Performance Insights',
+      //   url: '/dashboard/analytics/performance',
+      //   icon: 'pie-chart',
+      //   shortcut: ['p', 'i']
+      // }
     ]
   },
 
@@ -397,30 +397,30 @@ export const navItems: NavItem[] = [
     shortcut: ['n', 'n'],
     isActive: false,
     items: [
-      {
-        title: 'All Notifications',
-        url: '/dashboard/notifications/all',
-        icon: 'inbox',
-        shortcut: ['n', 'a']
-      },
-      {
-        title: 'Urgent Alerts',
-        url: '/dashboard/notifications/urgent',
-        icon: 'alert-circle',
-        shortcut: ['n', 'u']
-      },
-      {
-        title: 'Broadcast Messages',
-        url: '/dashboard/notifications/broadcast',
-        icon: 'megaphone',
-        shortcut: ['n', 'b']
-      },
-      {
-        title: 'Notification Settings',
-        url: '/dashboard/notifications/settings',
-        icon: 'settings',
-        shortcut: ['n', 's']
-      }
+      // {
+      //   title: 'All Notifications',
+      //   url: '/dashboard/notifications/all',
+      //   icon: 'inbox',
+      //   shortcut: ['n', 'a']
+      // },
+      // {
+      //   title: 'Urgent Alerts',
+      //   url: '/dashboard/notifications/urgent',
+      //   icon: 'alert-circle',
+      //   shortcut: ['n', 'u']
+      // },
+      // {
+      //   title: 'Broadcast Messages',
+      //   url: '/dashboard/notifications/broadcast',
+      //   icon: 'megaphone',
+      //   shortcut: ['n', 'b']
+      // },
+      // {
+      //   title: 'Notification Settings',
+      //   url: '/dashboard/notifications/settings',
+      //   icon: 'settings',
+      //   shortcut: ['n', 's']
+      // }
     ]
   },
 
@@ -444,24 +444,24 @@ export const navItems: NavItem[] = [
   //       icon: 'user-cog',
   //       shortcut: ['m', 'u']
   //     },
-  //     {
-  //       title: 'System Settings',
-  //       url: '/dashboard/admin/settings',
-  //       icon: 'cog',
-  //       shortcut: ['m', 's']
-  //     },
-  //     {
-  //       title: 'API Management',
-  //       url: '/dashboard/admin/api',
-  //       icon: 'code',
-  //       shortcut: ['m', 'a']
-  //     },
-  //     {
-  //       title: 'Audit Logs',
-  //       url: '/dashboard/admin/audit',
-  //       icon: 'file-search',
-  //       shortcut: ['m', 'l']
-  //     }
+      // {
+      //   title: 'System Settings',
+      //   url: '/dashboard/admin/settings',
+      //   icon: 'cog',
+      //   shortcut: ['m', 's']
+      // },
+      // {
+      //   title: 'API Management',
+      //   url: '/dashboard/admin/api',
+      //   icon: 'code',
+      //   shortcut: ['m', 'a']
+      // },
+      // {
+      //   title: 'Audit Logs',
+      //   url: '/dashboard/admin/audit',
+      //   icon: 'file-search',
+      //   shortcut: ['m', 'l']
+      // }
   //   ]
   // }
 ];

@@ -4,7 +4,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { requestId } from "hono/request-id";
 import { notFound, onError, serveEmojiFavicon } from "stoker/middlewares";
 import { defaultHook } from "stoker/openapi";
-
+import { authContextMiddleware } from "../middlewares/auth-context";
 // import { pinoLogger } from "../middlewares/pino-logger";
 
 import type { AppBindings } from "./types";
@@ -22,6 +22,7 @@ export default function createApp() {
   const app = createRouter().basePath(BASE_PATH);
   app.use(requestId())
     .use(serveEmojiFavicon("📝"))
+    // .use("/*", authContextMiddleware)
     // .use(pinoLogger());
 
   app.notFound(notFound);

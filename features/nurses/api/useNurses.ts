@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { honoClient, handleHonoResponse } from '@/lib/hono';
 
 export interface Nurse {
   worker_id: number;
@@ -31,12 +32,28 @@ export function useNurses(params: Record<string, string | number> = {}) {
   return useQuery<NursesResponse, Error>({
     queryKey,
     queryFn: async () => {
-      const qs = new URLSearchParams(params as any).toString();
-      const res = await fetch(`/nurses${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch nurses");
-      return res.json();
+      // Use honoClient to fetch nurses
+      const nursesRoute = honoClient.api['/nurses'];
+      
+      // Build query parameters
+      const queryParams: Record<string, string> = {};
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams[key] = String(value);
+        }
+      });
+      
+      // @ts-ignore - route typing doesn't include query prop in helper
+      return handleHonoResponse(
+        nursesRoute.$get({
+          query: queryParams,
+          header: {},
+          cookie: {},
+          param: {},
+        } as any)
+      );
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 }
 

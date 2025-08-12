@@ -1,9 +1,8 @@
-import React from 'react'
+import { SkillsManagement } from "@/components/features/staff/availability/skills/skills-management";
+import React from 'react';
 
-const Skills = () => {
-  return (
-    <div>Skills</div>
-  )
-}
+const AvailabilityPage = () => {
+  return <SkillsManagement />;
+};
 
-export default Skills
+export default AvailabilityPage;

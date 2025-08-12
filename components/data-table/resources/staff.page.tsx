@@ -8,6 +8,8 @@ import { createNurseColumns } from "./nurse.columns";
 import { Nurse } from "./nurse.types";
 import { usePredefinedSchemaModal } from "@/hooks/use-schema-modal";
 import { useNurses } from "@/features/nurses/api/useNurses";
+import { useCreateNurse } from "@/features/nurses/api";
+import { toast } from "sonner";
 
 // Remove the mock fetchUsers function since we'll use the useUsers hook
 
@@ -107,40 +109,24 @@ export default function StaffPage() {
     // Implement export logic
   }
 
+  const createNurse = useCreateNurse();
+
   const handleAdd = () => {
-    console.log("handleAdd triggered")
+    console.log("handleAdd triggered");
     openNurseModalWithSubmit(undefined, async (data) => {
       try {
-        console.log("Form data received in handleAdd:", data)
-        
-        // Validate required fields
-        if (!data.name || !data.email || !data.role) { // removed: !data.password
-          throw new Error("Missing required fields: name, email, or role")
-        }
-        
-        // Ensure profile object exists
-        const userData = {
-          ...data,
-          profile: data.profile || {}
-        }
-        
-        console.log("Data being sent to API:", userData)
-        
-        // Use the createUser mutation instead of fetch
-        // const result = await createUserMutation.mutateAsync(userData) // This line was removed as per the new_code
-        console.log("API response:", userData) // This line was changed as per the new_code
-        
-        // The mutation will automatically invalidate the users query
-        // and trigger a refetch, so we don't need to manually refresh
-        console.log("User created successfully")
-        // Show success message
-        alert("User created successfully")
+        console.log("Form data received in handleAdd:", data);
+
+        // Call create nurse mutation via Hono client
+        await createNurse.mutateAsync(data);
+
+        toast.success("Nurse created successfully");
       } catch (error) {
-        console.error("Failed to create user:", error)
-        alert("Failed to create user. Please try again.")
-        throw error // Re-throw to let the modal handle the error
+        console.error("Failed to create nurse:", error);
+        toast.error("Failed to create nurse. Please try again.");
+        throw error; // Let modal display the error
       }
-    })
+    });
   }
 
   // Handle API errors

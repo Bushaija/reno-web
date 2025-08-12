@@ -44,7 +44,7 @@ export const healthcareWorkers = pgTable("healthcare_workers", {
 	index("idx_healthcare_workers_specialization").using("btree", table.specialization.asc().nullsLast().op("text_ops")),
 	foreignKey({
 			columns: [table.userId],
-			foreignColumns: [users.userId],
+			foreignColumns: [users.id],
 			name: "healthcare_workers_user_id_fkey"
 		}).onDelete("cascade"),
 	unique("healthcare_workers_employee_id_key").on(table.employeeId),
@@ -111,7 +111,7 @@ export const admins = pgTable("admins", {
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],
-			foreignColumns: [users.userId],
+			foreignColumns: [users.id],
 			name: "admins_user_id_fkey"
 		}).onDelete("cascade"),
 ]);
@@ -370,7 +370,7 @@ export const notifications = pgTable("notifications", {
 	index("idx_notifications_user_id").using("btree", table.userId.asc().nullsLast().op("int4_ops")),
 	foreignKey({
 			columns: [table.userId],
-			foreignColumns: [users.userId],
+			foreignColumns: [users.id],
 			name: "notifications_user_id_fkey"
 		}).onDelete("cascade"),
 ]);
