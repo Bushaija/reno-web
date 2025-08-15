@@ -213,9 +213,9 @@ export const fatigueAssessmentsRelations = relations(fatigueAssessments, ({one})
 }));
 
 export const reportsRelations = relations(reports, ({one}) => ({
-	admin: one(admins, {
-		fields: [reports.adminId],
-		references: [admins.adminId]
+	admin: one(users, {
+		fields: [reports.userId],
+		references: [users.id]
 	}),
 }));
 

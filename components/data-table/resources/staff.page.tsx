@@ -10,11 +10,17 @@ import { usePredefinedSchemaModal } from "@/hooks/use-schema-modal";
 import { useNurses } from "@/features/nurses/api/useNurses";
 import { useCreateNurse } from "@/features/nurses/api";
 import { toast } from "sonner";
+import { useGenerateReport } from "@/hooks/use-outcome-report";
+import { ExportReportModal } from "./export-report-modal";
 
 // Remove the mock fetchUsers function since we'll use the useUsers hook
 
 export default function StaffPage() {
   const { openNurseModalWithSubmit } = usePredefinedSchemaModal()
+  const generateReport = useGenerateReport();
+  
+  // State for export modal
+  const [exportModalOpen, setExportModalOpen] = React.useState(false);
   
   // Use the useUsers hook instead of manual state management
   const [queryParams, setQueryParams] = React.useState({
@@ -105,9 +111,24 @@ export default function StaffPage() {
   }
 
   const handleExport = () => {
-    console.log("Export users")
-    // Implement export logic
-  }
+    // Open the export modal instead of directly generating report
+    setExportModalOpen(true);
+  };
+
+  const handleExportSubmit = async (reportRequest: any) => {
+    try {
+      const result = await generateReport.mutateAsync(reportRequest);
+      
+      if (result.success) {
+        toast.success(`Report "${result.fileName}" generated and downloaded successfully!`);
+      } else {
+        toast.error("Failed to generate report");
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast.error("Failed to export report. Please try again.");
+    }
+  };
 
   const createNurse = useCreateNurse();
 
@@ -143,8 +164,6 @@ export default function StaffPage() {
 
   return (
     <div className="container py-2">
-
-
       <ReusableDataTable
         columns={columns}
         data={data}
@@ -159,6 +178,14 @@ export default function StaffPage() {
         onExport={handleExport}
         onAdd={handleAdd}
         showActions={true}
+      />
+
+      {/* Export Report Modal */}
+      <ExportReportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        onExport={handleExportSubmit}
+        isLoading={generateReport.isPending}
       />
     </div>
   )

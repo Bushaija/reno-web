@@ -22,21 +22,12 @@ export interface AttendanceRecord {
   break_duration_minutes: number;
   overtime_minutes: number;
   late_minutes: number;
+  early_departure_minutes: number;
   patient_count_start: number | null;
   patient_count_end: number | null;
-  status: 'present' | 'absent' | 'late' | 'early_departure' | 'no_show' | 'partial';
-}
-
-export interface AttendanceResponse {
-  success: boolean;
-  data: AttendanceRecord[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  timestamp: string;
+  status: 'present' | 'absent' | 'late' | 'on_break' | 'early_departure' | 'no_show' | 'partial';
+  notes?: string;
+  recorded_at: string;
 }
 
 export interface AttendanceFilters {
@@ -46,60 +37,96 @@ export interface AttendanceFilters {
   end_date?: string;
   status?: string;
   has_violations?: boolean;
-  page?: number;
-  limit?: number;
+}
+
+export interface AttendanceResponse {
+  success: boolean;
+  data: AttendanceRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+  timestamp: string;
+}
+
+// Nurse status types for the status board
+export interface NurseStatusRecord {
+  nurse_id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url?: string;
+  status: 'PRESENT' | 'LATE' | 'ABSENT' | 'ON_BREAK';
+  department: {
+    department_id: string;
+    name: string;
+  };
+  patient_ratio: {
+    current: number;
+    max: number;
+  };
+  shift_start_time: string;
+  shift_end_time: string;
+  alerts: Array<{
+    alert_id: string;
+    type: 'OVERTIME' | 'FATIGUE';
+    message: string;
+    timestamp: string;
+  }>;
+}
+
+export interface NurseStatusResponse {
+  success: boolean;
+  data: NurseStatusRecord[];
+  timestamp: string;
+}
+
+export interface StatusBoardFilters {
+  search: string;
+  departmentId: string;
+  status: string;
 }
 
 /**
- * Real-time attendance hook with automatic polling and cache management
+ * Hook for fetching real-time attendance records
  * 
  * @example
  * ```tsx
- * // Basic usage - fetches all attendance records with 30-second updates
- * const { data, isLoading, error } = useGetRealTimeAttendance();
+ * // Basic usage
+ * const { data, isLoading, error } = useRealTimeAttendance();
  * 
- * // With filters and custom polling interval
- * const { data, isLoading, error } = useGetRealTimeAttendance(
- *   { nurse_id: 123, has_violations: true },
- *   { refetchInterval: 15000 } // 15 seconds
- * );
- * 
- * // Disable real-time updates
- * const { data, isLoading, error } = useGetRealTimeAttendance(
- *   {},
- *   { refetchInterval: false }
- * );
+ * // With filters
+ * const { data, isLoading, error } = useRealTimeAttendance({
+ *   nurse_id: 123,
+ *   status: 'present',
+ *   start_date: '2024-03-15'
+ * });
  * ```
  * 
  * @param filters - Optional filters for attendance records
- * @param options - Additional options for the hook
- * @returns Query result with attendance data
+ * @param options - Additional query options
  */
-export function useGetRealTimeAttendance(
+export function useRealTimeAttendance(
   filters: AttendanceFilters = {},
   options: {
     enabled?: boolean;
-    refetchInterval?: number | false;
+    refetchInterval?: number;
     staleTime?: number;
-    gcTime?: number;
   } = {}
 ) {
   const {
     enabled = true,
     refetchInterval = 30000, // 30 seconds for real-time updates
-    staleTime = 10 * 1000, // 10 seconds
-    gcTime = 5 * 60 * 1000, // 5 minutes
+    staleTime = 0, // Always consider data stale for real-time
   } = options;
 
   return useQuery({
     queryKey: ['attendance', 'real-time', filters],
     queryFn: async (): Promise<AttendanceResponse> => {
       try {
-        // Use Hono client for type-safe API calls
         const response = await honoClient.api['/attendance'].$get({
           query: {
-            page: filters.page || 1,
-            limit: filters.limit || 50,
             nurse_id: filters.nurse_id,
             shift_id: filters.shift_id,
             start_date: filters.start_date,
@@ -113,18 +140,165 @@ export function useGetRealTimeAttendance(
 
         return handleHonoResponse(response);
       } catch (error) {
-        console.error('Failed to fetch attendance records:', error);
-        throw new Error('Failed to fetch attendance records');
+        console.error('Failed to fetch real-time attendance:', error);
+        throw new Error('Failed to fetch real-time attendance');
       }
     },
     enabled,
     refetchInterval,
     staleTime,
-    gcTime,
-    // Real-time specific options
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
+  });
+}
+
+/**
+ * Hook for fetching nurse statuses for the attendance status board
+ * This integrates with the department hooks and provides real-time updates
+ * 
+ * @example
+ * ```tsx
+ * const { data, isLoading, error } = useNurseStatuses({
+ *   search: 'john',
+ *   departmentId: 'cardiology',
+ *   status: 'present'
+ * });
+ * ```
+ * 
+ * @param filters - Filters for the status board
+ * @param options - Additional query options
+ */
+export function useNurseStatuses(
+  filters: StatusBoardFilters,
+  options: {
+    enabled?: boolean;
+    refetchInterval?: number;
+    staleTime?: number;
+  } = {}
+) {
+  const {
+    enabled = true,
+    refetchInterval = 15000, // 15 seconds for status board updates
+    staleTime = 0,
+  } = options;
+
+  return useQuery({
+    queryKey: ['nurse-statuses', filters],
+    queryFn: async (): Promise<NurseStatusResponse> => {
+      try {
+        // Build query parameters based on filters
+        const queryParams: any = {};
+        
+        if (filters.search) {
+          queryParams.search = filters.search;
+        }
+        
+        if (filters.departmentId && filters.departmentId !== 'all') {
+          queryParams.department_id = filters.departmentId;
+        }
+        
+        if (filters.status && filters.status !== 'all') {
+          queryParams.status = filters.status;
+        }
+
+        const response = await honoClient.api['/attendance/status-board'].$get({
+          query: queryParams,
+          header: {},
+          cookie: {},
+        });
+
+        return handleHonoResponse(response);
+      } catch (error) {
+        console.error('Failed to fetch nurse statuses:', error);
+        throw new Error('Failed to fetch nurse statuses');
+      }
+    },
+    enabled: enabled && (filters.search || filters.departmentId !== 'all' || filters.status !== 'all'),
+    refetchInterval,
+    staleTime,
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * Hook for fetching attendance statistics
+ * 
+ * @example
+ * ```tsx
+ * const { data, isLoading, error } = useAttendanceStats();
+ * ```
+ */
+export function useAttendanceStats() {
+  return useQuery({
+    queryKey: ['attendance-stats'],
+    queryFn: async () => {
+      try {
+        const response = await honoClient.api['/attendance/stats'].$get({
+          header: {},
+          cookie: {},
+        });
+
+        return handleHonoResponse(response);
+      } catch (error) {
+        console.error('Failed to fetch attendance stats:', error);
+        throw new Error('Failed to fetch attendance stats');
+      }
+    },
+    refetchInterval: 60000, // 1 minute for stats updates
+    staleTime: 30000, // 30 seconds
+  });
+}
+
+/**
+ * Hook for fetching attendance records with pagination
+ * 
+ * @example
+ * ```tsx
+ * const { data, isLoading, error } = useAttendanceRecords({
+ *   page: 1,
+ *   limit: 20,
+ *   status: 'present'
+ * });
+ * ```
+ * 
+ * @param params - Query parameters including pagination
+ */
+export function useAttendanceRecords(params: {
+  page?: number;
+  limit?: number;
+  nurse_id?: number;
+  shift_id?: number;
+  start_date?: string;
+  end_date?: string;
+  status?: string;
+  has_violations?: boolean;
+} = {}) {
+  const {
+    page = 1,
+    limit = 20,
+    ...filters
+  } = params;
+
+  return useQuery({
+    queryKey: ['attendance-records', { page, limit, ...filters }],
+    queryFn: async () => {
+      try {
+        const response = await honoClient.api['/attendance'].$get({
+          query: {
+            page,
+            limit,
+            ...filters,
+          },
+          header: {},
+          cookie: {},
+        });
+
+        return handleHonoResponse(response);
+      } catch (error) {
+        console.error('Failed to fetch attendance records:', error);
+        throw new Error('Failed to fetch attendance records');
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -155,7 +329,7 @@ export function useGetNurseAttendance(
     refetchInterval?: number | false;
   } = {}
 ) {
-  return useGetRealTimeAttendance(
+  return useRealTimeAttendance(
     { ...filters, nurse_id: nurseId },
     options
   );
@@ -187,7 +361,7 @@ export function useGetShiftAttendance(
     refetchInterval?: number | false;
   } = {}
 ) {
-  return useGetRealTimeAttendance(
+  return useRealTimeAttendance(
     { ...filters, shift_id: shiftId },
     options
   );
@@ -218,7 +392,7 @@ export function useGetAttendanceViolations(
     refetchInterval?: number | false;
   } = {}
 ) {
-  return useGetRealTimeAttendance(
+  return useRealTimeAttendance(
     { ...filters, has_violations: true },
     options
   );
@@ -250,7 +424,7 @@ export function useGetTodayAttendance(
 ) {
   const today = new Date().toISOString().split('T')[0];
   
-  return useGetRealTimeAttendance(
+  return useRealTimeAttendance(
     { 
       ...filters, 
       start_date: today,
@@ -293,7 +467,7 @@ export function useGetAttendanceByDateRange(
     refetchInterval?: number | false;
   } = {}
 ) {
-  return useGetRealTimeAttendance(
+  return useRealTimeAttendance(
     { 
       ...filters, 
       start_date: startDate,
@@ -330,7 +504,7 @@ export function useGetAttendanceByStatus(
     refetchInterval?: number | false;
   } = {}
 ) {
-  return useGetRealTimeAttendance(
+  return useRealTimeAttendance(
     { ...filters, status },
     options
   );
@@ -382,4 +556,11 @@ export function useAttendanceQueryClient() {
 }
 
 // Export types for external use
-export type { AttendanceRecord, AttendanceResponse, AttendanceFilters };
+export type {
+  AttendanceRecord,
+  AttendanceFilters,
+  AttendanceResponse,
+  NurseStatusRecord,
+  NurseStatusResponse,
+  StatusBoardFilters,
+};

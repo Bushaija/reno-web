@@ -517,7 +517,8 @@ export const fatigueAssessments = pgTable("fatigue_assessments", {
 
 export const reports = pgTable("reports", {
 	reportId: serial("report_id").primaryKey().notNull(),
-	adminId: integer("admin_id").notNull(),
+	userId: integer("user_id").notNull(),
+	// adminId: integer("admin_id").notNull(),
 	reportType: varchar("report_type", { length: 50 }).notNull(),
 	title: varchar({ length: 200 }).notNull(),
 	parameters: jsonb(),
@@ -529,9 +530,9 @@ export const reports = pgTable("reports", {
 	nextRunDate: date("next_run_date"),
 }, (table) => [
 	foreignKey({
-			columns: [table.adminId],
-			foreignColumns: [admins.adminId],
-			name: "reports_admin_id_fkey"
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "reports_user_id_fkey"
 		}).onDelete("cascade"),
 ]);
 

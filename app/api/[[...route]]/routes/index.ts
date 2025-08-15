@@ -10,6 +10,7 @@ import timeOffRequests from "./web/time-off-requests/time-off-requests.index";
 import attendance from "./web/attendance/attendance.index";
 import notifications from "./web/notifications/notifications.index"; 
 import reports from "./web/reports/reports.index";
+import outcome from "./web/outcome/outcome.index";
 import auth from "./auth/auth.index";
 
 export function registerRoutes(app: AppOpenAPI) {
@@ -24,6 +25,7 @@ export function registerRoutes(app: AppOpenAPI) {
       .route('/', attendance)
       .route('/', notifications)
       .route('/', reports)
+      .route('/', outcome)
 };
 
 
