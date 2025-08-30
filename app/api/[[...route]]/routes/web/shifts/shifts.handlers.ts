@@ -1,0 +1,905 @@
+import { eq, and, gte, lte, desc, asc, count, sql } from "drizzle-orm";
+import * as HttpStatusCodes from "stoker/http-status-codes";
+import type { AppRouteHandler } from "../../../lib/types";
+import { db } from "@/db";
+import { 
+  shifts, 
+  shiftAssignments, 
+  departments, 
+  healthcareWorkers, 
+  users,
+  fatigueAssessments 
+} from "@/db/schema/tables";
+import type {
+  ListRoute,
+  CreateRoute,
+  BulkCreateRoute,
+  GetOneRoute,
+  UpdateRoute,
+  RemoveRoute,
+  AutoAssignRoute,
+  GetAssignmentsRoute,
+  CreateAssignmentRoute,
+  RemoveAssignmentRoute,
+  AutoCreateShiftsRoute,
+} from "./shifts.routes";
+
+// GET /shifts
+export const list: AppRouteHandler<ListRoute> = async (c) => {
+  const query = c.req.query() as any;
+  const { page, limit, departmentId, startDate, endDate, shiftType, status, nurseId, understaffedOnly } = query;
+
+  const offset = (page - 1) * limit;
+
+  // Build where conditions
+  const whereConditions = []; 
+  
+  if (departmentId) {
+    whereConditions.push(eq(shifts.departmentId, departmentId));
+  }
+  
+  if (startDate) {
+    whereConditions.push(gte(shifts.startTime, startDate));
+  }
+  
+  if (endDate) {
+    whereConditions.push(lte(shifts.endTime, endDate));
+  }
+  
+  if (shiftType) {
+    whereConditions.push(eq(shifts.shiftType, shiftType));
+  }
+  
+  if (status) {
+    whereConditions.push(eq(shifts.status, status));
+  }
+  
+  if (understaffedOnly) {
+    whereConditions.push(eq(shifts.status, 'understaffed'));
+  }
+  
+  // If nurseId is provided, filter shifts assigned to that nurse
+  if (nurseId) {
+    const assignedShiftIds = db
+      .select({ shiftId: shiftAssignments.shiftId })
+      .from(shiftAssignments)
+      .where(eq(shiftAssignments.workerId, nurseId));
+    
+    whereConditions.push(sql`${shifts.shiftId} IN ${assignedShiftIds}`);
+  }
+
+  const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+  // Get total count for pagination
+  const [totalResult] = await db
+    .select({ count: count() })
+    .from(shifts)
+    .where(whereClause);
+
+  const total = totalResult.count;
+  const totalPages = Math.ceil(total / limit);
+
+  // Get shifts data
+  const data = await db
+    .select()
+    .from(shifts)
+    .where(whereClause)
+    .orderBy(desc(shifts.startTime))
+    .limit(limit)
+    .offset(offset);
+
+  return c.json({
+    success: true,
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+    timestamp: new Date().toISOString(),
+  }, HttpStatusCodes.OK);
+};
+
+// POST /shifts
+export const create: AppRouteHandler<CreateRoute> = async (c) => {
+  const shiftData = await c.req.json();
+
+  try {
+    // Validate that department exists
+    const department = await db.query.departments.findFirst({
+      where: eq(departments.deptId, shiftData.departmentId),
+    });
+
+    if (!department) {
+      return c.json({
+        success: false,
+        message: "Department not found",
+      }, HttpStatusCodes.BAD_REQUEST);
+    }
+
+    // Validate shift times
+    const startTime = new Date(shiftData.startTime);
+    const endTime = new Date(shiftData.endTime);
+
+    if (endTime <= startTime) {
+      return c.json({
+        success: false,
+        message: "End time must be after start time",
+      }, HttpStatusCodes.BAD_REQUEST);
+    }
+
+    const [newShift] = await db
+      .insert(shifts)
+      .values({
+        ...shiftData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .returning();
+
+    return c.json({
+      success: true,
+      message: "Shift created successfully",
+      data: newShift,
+      timestamp: new Date().toISOString(),
+    }, HttpStatusCodes.CREATED);
+  } catch (error) {
+    return c.json({
+      success: false,
+      message: "Failed to create shift",
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// POST /shifts/bulk
+export const bulkCreate: AppRouteHandler<BulkCreateRoute> = async (c) => {
+  const bulkData = await c.req.json();
+  const { template, dateRange, timeSlots, skipDates = [] } = bulkData as {
+    template: {
+      departmentId: number;
+      durationHours: number;
+      requiredNurses: number;
+      requiredSkills?: number[];
+    };
+    dateRange: {
+      startDate: string;
+      endDate: string;
+    };
+    timeSlots: Array<{
+      startTime: string;
+      shiftType: 'day' | 'night' | 'evening' | 'weekend' | 'holiday' | 'on_call' | 'float';
+    }>;
+    skipDates?: string[];
+  };
+
+  try {
+    // Validate department exists
+    const department = await db.query.departments.findFirst({
+      where: eq(departments.deptId, template.departmentId),
+    });
+
+    if (!department) {
+      return c.json({
+        success: false,
+        message: "Department not found",
+      }, HttpStatusCodes.BAD_REQUEST);
+    }
+
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+    const skipDateSet = new Set(skipDates);
+
+    const shiftsToCreate = [];
+
+    // Generate shifts for each day in the range
+    for (let currentDate = new Date(startDate); currentDate <= endDate; currentDate.setDate(currentDate.getDate() + 1)) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      
+      // Skip if date is in skip list
+      if (skipDateSet.has(dateStr)) {
+        continue;
+      }
+
+      // Create shifts for each time slot
+      for (const timeSlot of timeSlots) {
+        const [hours, minutes] = timeSlot.startTime.split(':').map(Number);
+        
+        const shiftStart = new Date(currentDate);
+        shiftStart.setHours(hours, minutes, 0, 0);
+        
+        const shiftEnd = new Date(shiftStart);
+        shiftEnd.setHours(shiftStart.getHours() + template.durationHours);
+
+        shiftsToCreate.push({
+          departmentId: template.departmentId,
+          startTime: shiftStart.toISOString(),
+          endTime: shiftEnd.toISOString(),
+          shiftType: timeSlot.shiftType,
+          requiredNurses: template.requiredNurses,
+          requiredSkills: template.requiredSkills,
+          autoGenerated: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    if (shiftsToCreate.length > 0) {
+      await db.insert(shifts).values(shiftsToCreate);
+    }
+
+    return c.json({
+      success: true,
+      message: `Bulk shifts created successfully. Created ${shiftsToCreate.length} shifts.`,
+      timestamp: new Date().toISOString(),
+    }, HttpStatusCodes.CREATED);
+  } catch (error) {
+    return c.json({
+      success: false,
+      message: "Failed to create bulk shifts",
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// GET /shifts/{id}
+export const getOne: AppRouteHandler<GetOneRoute> = async (c) => {
+  const { id } = c.req.param();
+  const shiftId = parseInt(id);
+
+  const shift = await db.query.shifts.findFirst({
+    where: eq(shifts.shiftId, shiftId),
+  });
+
+  if (!shift) {
+    return c.json({
+      success: false,
+      message: "Shift not found",
+    }, HttpStatusCodes.NOT_FOUND);
+  }
+
+  return c.json({
+    success: true,
+    data: shift,
+    timestamp: new Date().toISOString(),
+  }, HttpStatusCodes.OK);
+};
+
+// PUT /shifts/{id}
+export const update: AppRouteHandler<UpdateRoute> = async (c) => {
+  const { id } = c.req.param();
+  const shiftId = parseInt(id);
+  const updateData = await c.req.json();
+
+  try {
+    // Check if shift exists
+    const existingShift = await db.query.shifts.findFirst({
+      where: eq(shifts.shiftId, shiftId),
+    });
+
+    if (!existingShift) {
+      return c.json({
+        success: false,
+        message: "Shift not found",
+      }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Validate department if being updated
+    if (updateData.departmentId) {
+      const department = await db.query.departments.findFirst({
+        where: eq(departments.deptId, updateData.departmentId),
+      });
+
+      if (!department) {
+        return c.json({
+          success: false,
+          message: "Department not found",
+        }, HttpStatusCodes.BAD_REQUEST);
+      }
+    }
+
+    // Validate shift times if being updated
+    if (updateData.startTime && updateData.endTime) {
+      const startTime = new Date(updateData.startTime);
+      const endTime = new Date(updateData.endTime);
+
+      if (endTime <= startTime) {
+        return c.json({
+          success: false,
+          message: "End time must be after start time",
+        }, HttpStatusCodes.BAD_REQUEST);
+      }
+    }
+
+    await db
+      .update(shifts)
+      .set({
+        ...updateData,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(shifts.shiftId, shiftId));
+
+    return c.json({
+      success: true,
+      message: "Shift updated successfully",
+      timestamp: new Date().toISOString(),
+    }, HttpStatusCodes.OK);
+  } catch (error) {
+    return c.json({
+      success: false,
+      message: "Failed to update shift",
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// DELETE /shifts/{id}
+export const remove: AppRouteHandler<RemoveRoute> = async (c) => {
+  const { id } = c.req.param();
+  const shiftId = parseInt(id);
+  try {
+    const existingShift = await db.query.shifts.findFirst({
+      where: eq(shifts.shiftId, shiftId),
+    });
+
+    if (!existingShift) {
+      return c.json({
+        success: false,
+        message: "Shift not found",
+      }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Update shift status to cancelled instead of deleting
+    await db
+      .update(shifts)
+      .set({
+        status: 'cancelled',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(shifts.shiftId, shiftId));
+
+    return c.json({
+      success: true,
+      message: "Shift cancelled successfully",
+      timestamp: new Date().toISOString(),
+    }, HttpStatusCodes.OK);
+  } catch (error) {
+    return c.json({
+      success: false,
+      message: "Failed to cancel shift",
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// POST /shifts/{id}/auto-assign
+export const autoAssign: AppRouteHandler<AutoAssignRoute> = async (c) => {
+  const { id } = c.req.param();
+  const shiftId = parseInt(id);
+  const { preferences = {} } = await c.req.json();
+
+  try {
+    // Check if shift exists
+    const shift = await db.query.shifts.findFirst({
+      where: eq(shifts.shiftId, shiftId),
+    });
+
+    if (!shift) {
+      return c.json({
+        success: false,
+        message: "Shift not found",
+      }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Get available nurses for the department with enhanced filtering
+    const availableNurses = await db
+      .select({
+        workerId: healthcareWorkers.workerId,
+        seniorityPoints: healthcareWorkers.seniorityPoints,
+        fatigueScore: healthcareWorkers.fatigueScore,
+        employeeId: healthcareWorkers.employeeId,
+        maxHoursPerWeek: healthcareWorkers.maxHoursPerWeek,
+        maxConsecutiveDays: healthcareWorkers.maxConsecutiveDays,
+        minHoursBetweenShifts: healthcareWorkers.minHoursBetweenShifts,
+        employmentType: healthcareWorkers.employmentType,
+        specialization: healthcareWorkers.specialization,
+      })
+      .from(healthcareWorkers)
+      .where(and(
+        // Filter by fatigue score if specified
+        preferences.maxFatigueScore ? lte(healthcareWorkers.fatigueScore, preferences.maxFatigueScore) : undefined,
+        // Filter by department (assuming nurses are assigned to departments)
+        eq(healthcareWorkers.workerId, healthcareWorkers.workerId) // Placeholder - would need department relationship
+      ))
+      .orderBy(
+        preferences.preferSeniority ? 
+        desc(healthcareWorkers.seniorityPoints) : 
+        asc(healthcareWorkers.fatigueScore)
+      )
+      .limit(shift.requiredNurses * 2); // Get more candidates for better selection
+
+    const assignments = [];
+    const warnings = [];
+    let assignedCount = 0;
+
+    for (const nurse of availableNurses) {
+      if (assignedCount >= shift.requiredNurses) break;
+
+      // Check if nurse is already assigned to this shift
+      const existingAssignment = await db.query.shiftAssignments.findFirst({
+        where: and(
+          eq(shiftAssignments.shiftId, shiftId),
+          eq(shiftAssignments.workerId, nurse.workerId)
+        ),
+      });
+
+      if (existingAssignment) {
+        continue;
+      }
+
+      // Check for overtime violations if avoidOvertime is enabled
+      if (preferences.avoidOvertime) {
+        const weeklyHours = await calculateWeeklyHours(nurse.workerId, shift.startTime);
+        if (nurse.maxHoursPerWeek && weeklyHours + getShiftDuration(shift) > nurse.maxHoursPerWeek) {
+          warnings.push(`Nurse ${nurse.employeeId} would exceed weekly hours limit`);
+          continue;
+        }
+      }
+
+      // Check for consecutive days violation
+      const consecutiveDays = await calculateConsecutiveDays(nurse.workerId, shift.startTime);
+      if (nurse.maxConsecutiveDays && consecutiveDays >= nurse.maxConsecutiveDays) {
+        warnings.push(`Nurse ${nurse.employeeId} would exceed consecutive days limit`);
+        continue;
+      }
+
+      // Check for minimum hours between shifts
+      const hoursSinceLastShift = await calculateHoursSinceLastShift(nurse.workerId, shift.startTime);
+      if (nurse.minHoursBetweenShifts && hoursSinceLastShift < nurse.minHoursBetweenShifts) {
+        warnings.push(`Nurse ${nurse.employeeId} needs more rest between shifts`);
+        continue;
+      }
+
+      // Add fatigue warning if score is high
+      if (nurse.fatigueScore && nurse.fatigueScore > 70) {
+        warnings.push(`High fatigue score (${nurse.fatigueScore}) for Nurse ${nurse.employeeId}`);
+      }
+
+      // Create assignment
+      const [assignment] = await db
+        .insert(shiftAssignments)
+        .values({
+          shiftId: shiftId,
+          workerId: nurse.workerId,
+          status: 'assigned',
+          isPrimary: assignedCount === 0, // First nurse is primary
+          assignedAt: new Date().toISOString(),
+          fatigueScoreAtAssignment: nurse.fatigueScore,
+        })
+        .returning();
+
+      assignments.push(assignment);
+      assignedCount++;
+    }
+
+    // Update shift assigned nurses count
+    if (assignedCount > 0) {
+      await db
+        .update(shifts)
+        .set({
+          assignedNurses: assignedCount,
+          status: assignedCount >= shift.requiredNurses ? 'scheduled' : 'understaffed',
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(shifts.shiftId, shiftId));
+    }
+
+    return c.json({
+      success: true,
+      message: "Auto-assignment completed",
+      data: {
+        assignedCount,
+        assignments,
+        warnings,
+      },
+      timestamp: new Date().toISOString(),
+    }, HttpStatusCodes.OK);
+
+  } catch (error) {
+    console.error("Auto-assignment error:", error);
+    return c.json({
+      success: false,
+      message: "Failed to auto-assign nurses",
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// POST /shifts/auto-create-shifts
+export const autoCreateShifts: AppRouteHandler<AutoCreateShiftsRoute> = async (c) => {
+  const {
+    departmentId,
+    startDate,
+    endDate,
+    shiftTypes,
+    requiredNurses,
+    requiredSkills,
+    patientRatioTarget,
+    notes,
+  } = await c.req.json();
+
+  // Default time ranges for each shift type
+  const shiftTimeRanges: Record<string, { start: string; end: string }> = {
+    day: { start: "07:00", end: "15:00" },
+    night: { start: "23:00", end: "07:00" },
+    weekend: { start: "09:00", end: "17:00" },
+    holiday: { start: "09:00", end: "17:00" },
+  };
+
+  const shiftsToCreate = [];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dayOfWeek = d.getDay();
+    for (const type of shiftTypes) {
+      if (type === "weekend" && dayOfWeek !== 0 && dayOfWeek !== 6) continue;
+      // (Optional) Add holiday logic here if you have a holiday calendar
+      const { start: startTimeStr, end: endTimeStr } = shiftTimeRanges[type];
+      const shiftStart = new Date(d);
+      const [startHour, startMin] = startTimeStr.split(":").map(Number);
+      shiftStart.setHours(startHour, startMin, 0, 0);
+      let shiftEnd = new Date(shiftStart);
+      if (type === "night") {
+        shiftEnd.setDate(shiftEnd.getDate() + 1);
+      }
+      const [endHour, endMin] = endTimeStr.split(":").map(Number);
+      shiftEnd.setHours(endHour, endMin, 0, 0);
+      shiftsToCreate.push({
+        departmentId,
+        startTime: shiftStart.toISOString(),
+        endTime: shiftEnd.toISOString(),
+        shiftType: type,
+        requiredNurses,
+        requiredSkills,
+        patientRatioTarget,
+        notes,
+        autoGenerated: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  if (shiftsToCreate.length > 0) {
+    await db.insert(shifts).values(shiftsToCreate);
+  }
+
+  return c.json({
+    success: true,
+    message: `Auto-created ${shiftsToCreate.length} shifts.`,
+    timestamp: new Date().toISOString(),
+  }, HttpStatusCodes.CREATED);
+};
+
+// Helper functions for auto-assignment logic
+async function calculateWeeklyHours(workerId: number, shiftStartTime: string): Promise<number> {
+  const weekStart = new Date(shiftStartTime);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  const weeklyShifts = await db
+    .select()
+    .from(shiftAssignments)
+    .innerJoin(shifts, eq(shiftAssignments.shiftId, shifts.shiftId))
+    .where(and(
+      eq(shiftAssignments.workerId, workerId),
+      gte(shifts.startTime, weekStart.toISOString()),
+      lte(shifts.endTime, weekEnd.toISOString()),
+      eq(shiftAssignments.status, 'assigned')
+    ));
+
+  return weeklyShifts.reduce((total, shift) => {
+    const start = new Date(shift.shifts.startTime);
+    const end = new Date(shift.shifts.endTime);
+    return total + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+  }, 0);
+}
+
+function getShiftDuration(shift: any): number {
+  const start = new Date(shift.startTime);
+  const end = new Date(shift.endTime);
+  return (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+}
+
+async function calculateConsecutiveDays(workerId: number, shiftStartTime: string): Promise<number> {
+  const shiftDate = new Date(shiftStartTime);
+  shiftDate.setHours(0, 0, 0, 0);
+
+  let consecutiveDays = 0;
+  let currentDate = new Date(shiftDate);
+
+  while (consecutiveDays < 10) { // Safety limit
+    const dayShifts = await db
+      .select()
+      .from(shiftAssignments)
+      .innerJoin(shifts, eq(shiftAssignments.shiftId, shifts.shiftId))
+      .where(and(
+        eq(shiftAssignments.workerId, workerId),
+        gte(shifts.startTime, currentDate.toISOString()),
+        lte(shifts.startTime, new Date(currentDate.getTime() + 24 * 60 * 60 * 1000).toISOString()),
+        eq(shiftAssignments.status, 'assigned')
+      ));
+
+    if (dayShifts.length === 0) break;
+    consecutiveDays++;
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return consecutiveDays;
+}
+
+async function calculateHoursSinceLastShift(workerId: number, shiftStartTime: string): Promise<number> {
+  const lastShift = await db
+    .select()
+    .from(shiftAssignments)
+    .innerJoin(shifts, eq(shiftAssignments.shiftId, shifts.shiftId))
+    .where(and(
+      eq(shiftAssignments.workerId, workerId),
+      lte(shifts.endTime, shiftStartTime),
+      eq(shiftAssignments.status, 'assigned')
+    ))
+    .orderBy(desc(shifts.endTime))
+    .limit(1);
+
+  if (lastShift.length === 0) return 24; // Default if no previous shift
+
+  const lastShiftEnd = new Date(lastShift[0].shifts.endTime);
+  const currentShiftStart = new Date(shiftStartTime);
+  return (currentShiftStart.getTime() - lastShiftEnd.getTime()) / (1000 * 60 * 60);
+}
+
+// GET /shifts/{id}/assignments
+export const getAssignments: AppRouteHandler<GetAssignmentsRoute> = async (c) => {
+  const { id } = c.req.param();
+  const shiftId = parseInt(id);
+  try {
+    // Check if shift exists
+    const shift = await db.query.shifts.findFirst({
+      where: eq(shifts.shiftId, shiftId),
+    });
+
+    if (!shift) {
+      return c.json({
+        success: false,
+        message: "Shift not found",
+      }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Get all assignments for this shift
+    const assignments = await db
+      .select()
+      .from(shiftAssignments)
+      .where(eq(shiftAssignments.shiftId, shiftId))
+      .orderBy(asc(shiftAssignments.assignedAt));
+
+    return c.json({
+      success: true,
+      data: assignments,
+      timestamp: new Date().toISOString(),
+    }, HttpStatusCodes.OK);
+
+  } catch (error) {
+    console.error("Get assignments error:", error);
+    return c.json({
+      success: false,
+      message: "Failed to get assignments",
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// POST /shifts/{id}/assignments
+export const createAssignment: AppRouteHandler<CreateAssignmentRoute> = async (c) => {
+  const { id } = c.req.param();
+  const shiftId = parseInt(id);
+  const assignmentData = await c.req.json();
+
+  try {
+    // Check if shift exists
+    const shift = await db.query.shifts.findFirst({
+      where: eq(shifts.shiftId, shiftId),
+    });
+
+    if (!shift) {
+      return c.json({
+        success: false,
+        message: "Shift not found",
+      }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Check if nurse exists
+    const nurse = await db.query.healthcareWorkers.findFirst({
+      where: eq(healthcareWorkers.workerId, assignmentData.nurseId),
+    });
+
+    if (!nurse) {
+      return c.json({
+        success: false,
+        message: "Nurse not found",
+      }, HttpStatusCodes.BAD_REQUEST);
+    }
+
+    // Check if nurse is already assigned to this shift
+    const existingAssignment = await db.query.shiftAssignments.findFirst({
+      where: and(
+        eq(shiftAssignments.shiftId, shiftId),
+        eq(shiftAssignments.workerId, assignmentData.nurseId)
+      ),
+    });
+
+    if (existingAssignment) {
+      return c.json({
+        success: false,
+        message: "Nurse is already assigned to this shift",
+      }, HttpStatusCodes.CONFLICT);
+    }
+
+    // Check for scheduling conflicts if overrideWarnings is false
+    if (!assignmentData.overrideWarnings) {
+      const conflicts = await checkSchedulingConflicts(assignmentData.nurseId, shift);
+      if (conflicts.length > 0) {
+        return c.json({
+          success: false,
+          message: "Scheduling conflicts detected",
+          data: { conflicts },
+        }, HttpStatusCodes.CONFLICT);
+      }
+    }
+
+    // Create the assignment
+    const [newAssignment] = await db
+      .insert(shiftAssignments)
+      .values({
+        shiftId: shiftId,
+        workerId: assignmentData.nurseId,
+        status: 'assigned',
+        isPrimary: assignmentData.isPrimary,
+        patientLoad: assignmentData.patientLoad,
+        assignedAt: new Date().toISOString(),
+        fatigueScoreAtAssignment: nurse.fatigueScore,
+      })
+      .returning();
+
+    // Update shift assigned nurses count
+    await db
+      .update(shifts)
+      .set({
+        assignedNurses: (shift.assignedNurses || 0) + 1,
+        status: ((shift.assignedNurses || 0) + 1) >= shift.requiredNurses ? 'scheduled' : 'understaffed',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(shifts.shiftId, shiftId));
+
+    return c.json({
+      success: true,
+      message: "Nurse assigned successfully",
+      timestamp: new Date().toISOString(),
+    }, HttpStatusCodes.CREATED);
+
+  } catch (error) {
+    console.error("Create assignment error:", error);
+    return c.json({
+      success: false,
+      message: "Failed to assign nurse",
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// DELETE /shifts/{shiftId}/assignments/{assignmentId}
+export const removeAssignment: AppRouteHandler<RemoveAssignmentRoute> = async (c) => {
+  const { shiftId, assignmentId } = c.req.param();
+  const shiftIdInt = parseInt(shiftId);
+  const assignmentIdInt = parseInt(assignmentId);
+
+  try {
+    // Check if shift exists
+    const shift = await db.query.shifts.findFirst({
+      where: eq(shifts.shiftId, shiftIdInt),
+    });
+
+    if (!shift) {
+      return c.json({
+        success: false,
+        message: "Shift not found",
+      }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Check if assignment exists
+    const assignment = await db.query.shiftAssignments.findFirst({
+      where: and(
+        eq(shiftAssignments.assignmentId, assignmentIdInt),
+        eq(shiftAssignments.shiftId, shiftIdInt)
+      ),
+    });
+
+    if (!assignment) {
+      return c.json({
+        success: false,
+        message: "Assignment not found",
+      }, HttpStatusCodes.NOT_FOUND);
+    }
+
+    // Delete the assignment
+    await db
+      .delete(shiftAssignments)
+      .where(eq(shiftAssignments.assignmentId, assignmentIdInt));
+
+    // Update shift assigned nurses count
+    const newAssignedCount = Math.max(0, (shift.assignedNurses || 0) - 1);
+    await db
+      .update(shifts)
+      .set({
+        assignedNurses: newAssignedCount,
+        status: newAssignedCount >= shift.requiredNurses ? 'scheduled' : 'understaffed',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(shifts.shiftId, shiftIdInt));
+
+    return c.json({
+      success: true,
+      message: "Assignment removed successfully",
+      timestamp: new Date().toISOString(),
+    }, HttpStatusCodes.OK);
+
+  } catch (error) {
+    console.error("Remove assignment error:", error);
+    return c.json({
+      success: false,
+      message: "Failed to remove assignment",
+    }, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+  }
+};
+
+// Helper function to check for scheduling conflicts
+async function checkSchedulingConflicts(workerId: number, shift: any): Promise<string[]> {
+  const conflicts = [];
+
+  // Check for overlapping shifts
+  const overlappingShifts = await db
+    .select()
+    .from(shiftAssignments)
+    .innerJoin(shifts, eq(shiftAssignments.shiftId, shifts.shiftId))
+    .where(and(
+      eq(shiftAssignments.workerId, workerId),
+      eq(shiftAssignments.status, 'assigned'),
+      sql`(
+        (${shifts.startTime} < ${shift.endTime} AND ${shifts.endTime} > ${shift.startTime})
+      )`
+    ));
+
+  if (overlappingShifts.length > 0) {
+    conflicts.push("Nurse has overlapping shifts");
+  }
+
+  // Check for minimum hours between shifts
+  const hoursSinceLastShift = await calculateHoursSinceLastShift(workerId, shift.startTime);
+  const nurse = await db.query.healthcareWorkers.findFirst({
+    where: eq(healthcareWorkers.workerId, workerId),
+  });
+
+  if (nurse && nurse.minHoursBetweenShifts && hoursSinceLastShift < nurse.minHoursBetweenShifts) {
+    conflicts.push(`Insufficient rest time (${hoursSinceLastShift}h < ${nurse.minHoursBetweenShifts}h required)`);
+  }
+
+  // Check for weekly hours limit
+  if (nurse) {
+    const weeklyHours = await calculateWeeklyHours(workerId, shift.startTime);
+    const shiftDuration = getShiftDuration(shift);
+    
+    if (nurse.maxHoursPerWeek && weeklyHours + shiftDuration > nurse.maxHoursPerWeek) {
+      conflicts.push(`Would exceed weekly hours limit (${weeklyHours + shiftDuration}h > ${nurse.maxHoursPerWeek}h)`);
+    }
+  }
+
+  return conflicts;
+}

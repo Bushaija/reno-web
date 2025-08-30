@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nurse Scheduling System - Wireframes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .wireframe-section {
+            background: white;
+            border-radius: 12px;
+            margin: 20px 0;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .wireframe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .wireframe {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fafafa;
+        }
+        
+        .wireframe-header {
+            background: #34495e;
+            color: white;
+            padding: 12px 16px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .mobile-frame {
+            max-width: 280px;
+            margin: 0 auto;
+        }
+        
+        .mobile-frame .wireframe-header {
+            background: #27ae60;
+        }
+        
+        .web-frame {
+            min-height: 400px;
+        }
+        
+        .web-frame .wireframe-header {
+            background: #2980b9;
+        }
+        
+        .wireframe-content {
+            padding: 20px;
+            min-height: 300px;
+        }
+        
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ecf0f1;
+            padding: 8px 12px;
+            margin: -20px -20px 20px -20px;
+            border-bottom: 1px solid #bdc3c7;
+        }
+        
+        .nav-item {
+            padding: 8px 12px;
+            background: #3498db;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+        }
+        
+        .btn-success { background: #27ae60; }
+        .btn-warning { background: #f39c12; }
+        .btn-danger { background: #e74c3c; }
+        .btn-secondary { background: #95a5a6; }
+        
+        .card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .shift-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        
+        .notification {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .notification.urgent {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-approved { background: #d4edda; color: #155724; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+        
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin: 10px 0;
+        }
+        
+        .schedule-cell {
+            background: #ecf0f1;
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 11px;
+            border-radius: 3px;
+        }
+        
+        .schedule-cell.assigned { background: #3498db; color: white; }
+        .schedule-cell.available { background: #27ae60; color: white; }
+        .schedule-cell.unavailable { background: #e74c3c; color: white; }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .metric-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .alert-box {
+            background: #fee;
+            border: 1px solid #fcc;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+            color: #c33;
+        }
+        
+        .tab-nav {
+            display: flex;
+            background: #ecf0f1;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-item {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .tab-item.active {
+            background: #3498db;
+            color: white;
+            border-radius: 4px;
+        }
+        
+        .dashboard-widgets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .widget {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .chart-placeholder {
+            background: #ecf0f1;
+            height: 120px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center; color: #2c3e50; margin-bottom: 30px;">Nurse Scheduling System - Core Wireframes</h1>
+        
+        <!-- MOBILE APP WIREFRAMES -->
+        <div class="wireframe-section">
+            <h2 class="section-title">📱 Mobile App (Nurse Interface)</h2>
+            
+            <div class="wireframe-grid">
+                <!-- Mobile Dashboard -->
+                <div class="wireframe mobile-frame">
+                    <div class="wireframe-header">🏠 Nurse Dashboard</div>
+                    <div class="wireframe-content">
+                        <div class="notification urgent">
+                            ⚠️ Overtime Alert: 38.5/40 hours this week
+                        </div>
+                        
+                        <div class="shift-card">
+                            <strong>Today's Shift</strong><br>
+                            7:00 AM - 7:00 PM<br>
+                            ICU Ward A<br>
+                            <span class="status-badge status-approved">Confirmed</span>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Quick Actions</strong><br>
+                            <button class="btn btn-success">Clock In</button>
+                            <button class="btn btn-warning">Request Swap</button>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Upcoming Shifts</strong><br>
+                            Tomorrow: 7PM-7AM (Night)<br>
+                            Fri: OFF<br>
+                            Sat: 7AM-7PM (Day)
+                        </div>
+                        
+                        <div class="nav-bar">
+                            <div class="nav-item">🏠</div>
+                            <div class="nav-item">📅</div>
+                            <div class="nav-item">🔄</div>
+                            <div class="nav-item">💬</div>
+                            <div class="nav-item">👤</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Schedule View -->
+                <div class="wireframe mobile-frame">
+                    <div class="wireframe-header">📅 My Schedule</div>
+                    <div class="wireframe-content">
+                        <div class="form-group">
+                            <label class="form-label">Week of March 15, 2024</label>
+                        </div>
+                        
+                        <div class="schedule-grid">
+                            <div style="font-weight: bold; grid-column: 1/-1; text-align: left; margin-bottom: 10px;">Mon Tue Wed Thu Fri Sat Sun</div>
+                            <div class="schedule-cell assigned">D</div>
+                            <div class="schedule-cell assigned">N</div>
+                            <div class="schedule-cell available">OFF</div>
+                            <div class="schedule-cell assigned">D</div>
+                            <div class="schedule-cell assigned">D</div>
+                            <div class="schedule-cell unavailable">OFF</div>
+                            <div class="schedule-cell unavailable">OFF</div>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Legend:</strong><br>
+                            <span style="color: #3498db;">■</span> Assigned 
+                            <span style="color: #27ae60;">■</span> Available 
+                            <span style="color: #e74c3c;">■</span> Unavailable
+                        </div>
+                        
+                        <div class="form-group">
+                            <button class="btn btn-success">Set Availability</button>
+                            <button class="btn btn-warning">Request Time Off</button>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>This Week Summary:</strong><br>
+                            Total Hours: 36<br>
+                            Overtime: 0<br>
+                            Break Compliance: ✅
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Shift Swap -->
+                <div class="wireframe mobile-frame">
+                    <div class="wireframe-header">🔄 Shift Swaps</div>
+                    <div class="wireframe-content">
+                        <div class="tab-nav">
+                            <button class="tab-item active">My Requests</button>
+                            <button class="tab-item">Available</button>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Swap Request #1234</strong><br>
+                            March 20, 7AM-7PM → Night Shift<br>
+                            <span class="status-badge status-pending">Pending</span><br>
+                            <small>Requested with: Sarah M.</small><br>
+                            <button class="btn btn-secondary">Cancel</button>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Available Swaps</strong><br>
+                            March 18, Night → Day<br>
+                            Offered by: John D.<br>
+                            <button class="btn btn-success">Accept</button>
+                            <button class="btn">Details</button>
+                        </div>
+                        
+                        <button class="btn btn-warning" style="width: 100%; margin-top: 15px;">+ Request New Swap</button>
+                        
+                        <div class="notification">
+                            💡 Tip: Swaps require admin approval and must maintain your maximum hours limit.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Notifications -->
+                <div class="wireframe mobile-frame">
+                    <div class="wireframe-header">💬 Notifications</div>
+                    <div class="wireframe-content">
+                        <div class="notification urgent">
+                            <strong>URGENT: Mandatory Overtime</strong><br>
+                            Report to ICU by 6 PM today<br>
+                            <small>2 hours ago</small>
+                        </div>
+                        
+                        <div class="notification">
+                            <strong>Swap Approved</strong><br>
+                            Your March 22 shift swap with Sarah M. has been approved.<br>
+                            <small>4 hours ago</small>
+                        </div>
+                        
+                        <div class="notification">
+                            <strong>Schedule Updated</strong><br>
+                            Next week's schedule is now available.<br>
+                            <small>1 day ago</small>
+                        </div>
+                        
+                        <div class="notification">
+                            <strong>Break Reminder</strong><br>
+                            You're due for a 30-minute break.<br>
+                            <small>5 minutes ago</small>
+                        </div>
+                        
+                        <button class="btn">Mark All Read</button>
+                    </div>
+                </div>
+                
+                <!-- Mobile Availability Form -->
+                <div class="wireframe mobile-frame">
+                    <div class="wireframe-header">⚙️ Set Availability</div>
+                    <div class="wireframe-content">
+                        <div class="form-group">
+                            <label class="form-label">Week of March 22, 2024</label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Monday</label>
+                            <select class="form-input">
+                                <option>Available - Any Shift</option>
+                                <option>Day Shift Only</option>
+                                <option>Night Shift Only</option>
+                                <option>Not Available</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Tuesday</label>
+                            <select class="form-input">
+                                <option>Available - Any Shift</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Preferred Max Hours</label>
+                            <input type="number" class="form-input" placeholder="40" max="60">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Special Requests</label>
+                            <textarea class="form-input" placeholder="e.g., Prefer weekends off this week"></textarea>
+                        </div>
+                        
+                        <button class="btn btn-success" style="width: 100%;">Save Availability</button>
+                        <button class="btn btn-secondary" style="width: 100%;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- WEB APP WIREFRAMES -->
+        <div class="wireframe-section">
+            <h2 class="section-title">💻 Web App (Admin Interface)</h2>
+            
+            <div class="wireframe-grid">
+                <!-- Admin Dashboard -->
+                <div class="wireframe web-frame">
+                    <div class="wireframe-header">🎛️ Admin Dashboard</div>
+                    <div class="wireframe-content">
+                        <div class="nav-bar">
+                            <div class="nav-item">Dashboard</div>
+                            <div class="nav-item">Scheduling</div>
+                            <div class="nav-item">Staff</div>
+                            <div class="nav-item">Reports</div>
+                            <div class="nav-item">Settings</div>
+                        </div>
+                        
+                        <div class="dashboard-widgets">
+                            <div class="metric-card">
+                                <div class="metric-number">127</div>
+                                <div class="metric-label">Active Nurses</div>
+                            </div>
+                            
+                            <div class="metric-card">
+                                <div class="metric-number">15</div>
+                                <div class="metric-label">Pending Requests</div>
+                            </div>
+                            
+                            <div class="metric-card">
+                                <div class="metric-number">92%</div>
+                                <div class="metric-label">Shift Coverage</div>
+                            </div>
+                            
+                            <div class="metric-card">
+                                <div class="metric-number">3</div>
+                                <div class="metric-label">Compliance Alerts</div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert-box">
+                            ⚠️ <strong>Staffing Alert:</strong> ICU night shift understaffed by 2 nurses for March 20
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Recent Activities</strong><br>
+                            • Sarah M. requested shift swap (5 min ago)<br>
+                            • John D. exceeded 12-hour limit (15 min ago)<br>
+                            • Emergency staffing activated for ICU (1 hr ago)
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Master Schedule View -->
+                <div class="wireframe web-frame">
+                    <div class="wireframe-header">📋 Master Schedule</div>
+                    <div class="wireframe-content">
+                        <div class="form-group" style="display: flex; gap: 10px;">
+                            <select class="form-input" style="flex: 1;">
+                                <option>March 2024</option>
+                            </select>
+                            <select class="form-input" style="flex: 1;">
+                                <option>All Departments</option>
+                                <option>ICU</option>
+                                <option>Emergency</option>
+                                <option>Surgery</option>
+                            </select>
+                            <button class="btn btn-success">Auto-Schedule</button>
+                            <button class="btn">Export</button>
+                        </div>
+                        
+                        <div style="background: #ecf0f1; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                            <strong>Schedule Grid (Week View)</strong><br>
+                            <div style="display: grid; grid-template-columns: 150px repeat(7, 1fr); gap: 1px; margin-top: 10px; font-size: 12px;">
+                                <div style="font-weight: bold;">Nurse</div>
+                                <div style="font-weight: bold;">Mon</div>
+                                <div style="font-weight: bold;">Tue</div>
+                                <div style="font-weight: bold;">Wed</div>
+                                <div style="font-weight: bold;">Thu</div>
+                                <div style="font-weight: bold;">Fri</div>
+                                <div style="font-weight: bold;">Sat</div>
+                                <div style="font-weight: bold;">Sun</div>
+                                
+                                <div>Sarah Miller</div>
+                                <div class="schedule-cell assigned">D</div>
+                                <div class="schedule-cell assigned">N</div>
+                                <div class="schedule-cell available">OFF</div>
+                                <div class="schedule-cell assigned">D</div>
+                                <div class="schedule-cell assigned">D</div>
+                                <div class="schedule-cell unavailable">OFF</div>
+                                <div class="schedule-cell unavailable">OFF</div>
+                                
+                                <div>John Davis</div>
+                                <div class="schedule-cell assigned">N</div>
+                                <div class="schedule-cell assigned">N</div>
+                                <div class="schedule-cell assigned">N</div>
+                                <div class="schedule-cell available">OFF</div>
+                                <div class="schedule-cell available">OFF</div>
+                                <div class="schedule-cell assigned">D</div>
+                                <div class="schedule-cell assigned">D</div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Schedule Statistics:</strong><br>
+                            Coverage Rate: 94% | Overtime Hours: 127 | Compliance Score: 87%
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Staff Management -->
+                <div class="wireframe web-frame">
+                    <div class="wireframe-header">👥 Staff Management</div>
+                    <div class="wireframe-content">
+                        <div class="form-group" style="display: flex; gap: 10px;">
+                            <input type="text" class="form-input" placeholder="Search nurses..." style="flex: 1;">
+                            <select class="form-input">
+                                <option>All Departments</option>
+                            </select>
+                            <button class="btn btn-success">+ Add Nurse</button>
+                        </div>
+                        
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>Sarah Miller</strong><br>
+                                    <small>ICU • RN • 5 years experience</small><br>
+                                    <small>Skills: Critical Care, ACLS</small>
+                                </div>
+                                <div>
+                                    <span class="status-badge status-approved">Active</span><br>
+                                    <button class="btn">Edit</button>
+                                    <button class="btn btn-warning">Schedule</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>John Davis</strong><br>
+                                    <small>Emergency • RN • 8 years experience</small><br>
+                                    <small>Skills: Trauma, PALS</small>
+                                </div>
+                                <div>
+                                    <span class="status-badge status-pending">On Leave</span><br>
+                                    <button class="btn">Edit</button>
+                                    <button class="btn btn-secondary">Schedule</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="widget">
+                            <div class="chart-placeholder">Staff Distribution Chart</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Request Management -->
+                <div class="wireframe web-frame">
+                    <div class="wireframe-header">📝 Request Management</div>
+                    <div class="wireframe-content">
+                        <div class="tab-nav">
+                            <button class="tab-item active">Shift Swaps</button>
+                            <button class="tab-item">Time Off</button>
+                            <button class="tab-item">Overtime</button>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Shift Swap Request #1234</strong><br>
+                            <div style="display: flex; justify-content: space-between; margin: 10px 0;">
+                                <div>
+                                    <strong>From:</strong> Sarah Miller<br>
+                                    March 20, 7AM-7PM (ICU)<br>
+                                    <strong>To:</strong> John Davis<br>
+                                    March 20, 7PM-7AM (ICU)
+                                </div>
+                                <div>
+                                    <span class="status-badge status-pending">Pending Review</span><br>
+                                    <button class="btn btn-success">Approve</button><br>
+                                    <button class="btn btn-danger">Reject</button>
+                                </div>
+                            </div>
+                            <div class="notification">
+                                ✅ Compliance Check: Both nurses within hour limits<br>
+                                ✅ Skills Match: Both qualified for ICU<br>
+                                ⚠️ Patient Acuity: High census expected
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Time Off Request #5678</strong><br>
+                            <div style="display: flex; justify-content: space-between; margin: 10px 0;">
+                                <div>
+                                    <strong>Nurse:</strong> Emily Johnson<br>
+                                    <strong>Dates:</strong> March 25-27<br>
+                                    <strong>Type:</strong> Vacation
+                                </div>
+                                <div>
+                                    <span class="status-badge status-approved">Approved</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Compliance Dashboard -->
+                <div class="wireframe web-frame">
+                    <div class="wireframe-header">⚖️ Compliance Dashboard</div>
+                    <div class="wireframe-content">
+                        <div class="dashboard-widgets">
+                            <div class="widget">
+                                <strong>Hour Violations</strong><br>
+                                <div class="metric-number" style="color: #e74c3c;">3</div>
+                                <div class="metric-label">This Week</div>
+                            </div>
+                            
+                            <div class="widget">
+                                <strong>Break Compliance</strong><br>
+                                <div class="metric-number" style="color: #27ae60;">97%</div>
+                                <div class="metric-label">Last 30 Days</div>
+                            </div>
+                            
+                            <div class="widget">
+                                <strong>Overtime Hours</strong><br>
+                                <div class="metric-number">247</div>
+                                <div class="metric-label">This Month</div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert-box">
+                            <strong>Active Violations:</strong><br>
+                            • John Davis: Exceeded 16-hour limit on March 18<br>
+                            • Sarah Miller: Missed mandatory break on March 19<br>
+                            • ICU Unit: Understaffed for 3 consecutive shifts
+                        </div>
+                        
+                        <div class="widget">
+                            <strong>Compliance Trends</strong><br>
+                            <div class="chart-placeholder">Compliance Chart Over Time</div>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Automated Alerts Configuration</strong><br>
+                            ✅ Overtime threshold: 40+ hours/week<br>
+                            ✅ Maximum shift length: 16 hours<br>
+                            ✅ Minimum break duration: 30 minutes<br>
+                            ✅ Patient-to-nurse ratio alerts<br>
+                            <button class="btn">Configure</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Analytics & Reports -->
+                <div class="wireframe web-frame">
+                    <div class="wireframe-header">📊 Analytics & Reports</div>
+                    <div class="wireframe-content">
+                        <div class="form-group" style="display: flex; gap: 10px;">
+                            <select class="form-input">
+                                <option>Last 30 Days</option>
+                                <option>Last Quarter</option>
+                                <option>Custom Range</option>
+                            </select>
+                            <select class="form-input">
+                                <option>All Departments</option>
+                            </select>
+                            <button class="btn">Generate Report</button>
+                            <button class="btn btn-success">Export</button>
+                        </div>
+                        
+                        <div class="dashboard-widgets">
+                            <div class="widget">
+                                <strong>Overtime Trends</strong><br>
+                                <div class="chart-placeholder">Overtime Chart</div>
+                            </div>
+                            
+                            <div class="widget">
+                                <strong>Absenteeism Rate</strong><br>
+                                <div class="chart-placeholder">Absenteeism Chart</div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <strong>Key Metrics Summary:</strong><br>
+                            • Average Overtime: 12.3 hrs/nurse/month<br>
+                            • Turnover Rate: 8.5% (Industry avg: 15%)<br>
+                            • Staff Satisfaction: 4.2/5.0<br>
+                            • Cost per Shift: $180 (10% reduction YoY)
+                        </div>
+                        
+                        <div class="widget">
+                            <strong>Predictive Staffing</strong><br>
+                            <div class="chart-placeholder">Demand Prediction Chart</div>
+                            <div class="notification">
+                                🔮 Predicted high demand for ICU next week based on historical patterns
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SHARED COMPONENTS -->
+        <div class="wireframe-section">
+            <h2 class="section-title">🔧 Shared Components & Forms</h2>
+            
+            <div class="wireframe-grid">
+                <!-- Shift Swap Form -->
+                <div class="wireframe">
+                    <div class="wireframe-header">🔄 Shift Swap Request Form</div>
+                    <div class="wireframe-content">
+                        <div class="form-group">
+                            <label class="form-label">My Shift to Trade</label>
+                            <select class="form-input">
+                                <option>March 20, 7AM-7PM (ICU)</option>
+                                <option>March 22, 7PM-7AM (Emergency)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Preferred Nurse</label>
+                            <select class="form-input">
+                                <option>Any qualified nurse</option>
+                                <option>John Davis</option>
+                                <option>Emily Johnson</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Reason for Swap</label>
+                            <textarea class="form-input" placeholder="Optional: Explain why you need this swap"></textarea>
+                        </div>
+                        
+                        <div class="notification">
+                            ℹ️ Swap requests must be approved by administration and maintain compliance with labor laws.
+                        </div>
+                        
+                        <button class="btn btn-success">Submit Request</button>
+                        <button class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+                
+                <!-- Notification Settings -->
+                <div class="wireframe">
+                    <div class="wireframe-header">🔔 Notification Preferences</div>
+                    <div class="wireframe-content">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" checked> Schedule Changes
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" checked> Shift Swap Updates
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" checked> Urgent Announcements
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox"> Break Reminders
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" checked> Overtime Alerts
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Notification Method</label>
+                            <select class="form-input">
+                                <option>Push Notifications + Email</option>
+                                <option>Push Notifications Only</option>
+                                <option>Email Only</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-success">Save Settings</button>
+                    </div>
+                </div>
+                
+                <!-- Emergency Staffing -->
+                <div class="wireframe">
+                    <div class="wireframe-header">🚨 Emergency Staffing Alert</div>
+                    <div class="wireframe-content">
+                        <div class="alert-box">
+                            <strong>CRITICAL STAFFING SHORTAGE</strong><br>
+                            ICU Night Shift - March 20, 7PM-7AM<br>
+                            Current: 4 nurses | Required: 6 nurses
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Available Nurses</label>
+                            <div class="card">
+                                ✅ Sarah Miller (Overtime approved)<br>
+                                ✅ John Davis (On-call)<br>
+                                ❌ Emily Johnson (Max hours reached)
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Actions</label>
+                            <button class="btn btn-danger">Activate Emergency Protocol</button>
+                            <button class="btn btn-warning">Request Voluntary OT</button>
+                            <button class="btn">Contact Agency Staff</button>
+                        </div>
+                        
+                        <div class="notification">
+                            📋 Emergency staffing will automatically notify qualified nurses and document compliance exceptions.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API INTEGRATION NOTES -->
+        <div class="wireframe-section">
+            <h2 class="section-title">🔌 API Integration Points</h2>
+            <div class="card">
+                <strong>Key API Endpoints Required:</strong><br>
+                <br>
+                <strong>Authentication & Users:</strong><br>
+                • POST /api/auth/login<br>
+                • GET /api/users/profile<br>
+                • PUT /api/users/availability<br>
+                <br>
+                <strong>Scheduling:</strong><br>
+                • GET /api/schedules/{period}<br>
+                • POST /api/schedules/generate<br>
+                • PUT /api/schedules/{id}/assign<br>
+                <br>
+                <strong>Shift Management:</strong><br>
+                • POST /api/shifts/swap-request<br>
+                • PUT /api/shifts/swap/{id}/approve<br>
+                • GET /api/shifts/available-swaps<br>
+                • POST /api/shifts/clock-in<br>
+                • POST /api/shifts/clock-out<br>
+                <br>
+                <strong>Compliance & Monitoring:</strong><br>
+                • GET /api/compliance/violations<br>
+                • GET /api/compliance/hours/{nurseId}<br>
+                • POST /api/compliance/break-taken<br>
+                • GET /api/compliance/overtime-alerts<br>
+                <br>
+                <strong>Notifications:</strong><br>
+                • GET /api/notifications<br>
+                • POST /api/notifications/send<br>
+                • PUT /api/notifications/{id}/read<br>
+                <br>
+                <strong>Analytics & Reports:</strong><br>
+                • GET /api/reports/overtime-trends<br>
+                • GET /api/reports/staffing-analytics<br>
+                • GET /api/reports/compliance-summary<br>
+                • POST /api/reports/generate<br>
+                <br>
+                <strong>Real-time Features:</strong><br>
+                • WebSocket: /ws/notifications<br>
+                • WebSocket: /ws/schedule-updates<br>
+                • WebSocket: /ws/emergency-alerts
+            </div>
+        </div>
+        
+        <!-- TECHNICAL CONSIDERATIONS -->
+        <div class="wireframe-section">
+            <h2 class="section-title">⚙️ Technical Considerations</h2>
+            
+            <div class="wireframe-grid">
+                <div class="wireframe">
+                    <div class="wireframe-header">📱 Mobile App Features</div>
+                    <div class="wireframe-content">
+                        <strong>Core Requirements:</strong><br>
+                        • Offline capability for viewing schedules<br>
+                        • Push notifications for urgent updates<br>
+                        • Biometric authentication support<br>
+                        • GPS-based clock in/out<br>
+                        • Dark mode support<br>
+                        • Accessibility compliance (WCAG 2.1)<br>
+                        <br>
+                        <strong>Performance:</strong><br>
+                        • App load time < 3 seconds<br>
+                        • Schedule sync in < 2 seconds<br>
+                        • Offline mode for 24+ hours<br>
+                        <br>
+                        <strong>Security:</strong><br>
+                        • End-to-end encryption<br>
+                        • HIPAA compliance<br>
+                        • Auto-logout after inactivity<br>
+                        • Secure credential storage
+                    </div>
+                </div>
+                
+                <div class="wireframe">
+                    <div class="wireframe-header">💻 Web App Features</div>
+                    <div class="wireframe-content">
+                        <strong>Admin Dashboard Requirements:</strong><br>
+                        • Real-time updates via WebSocket<br>
+                        • Advanced filtering and search<br>
+                        • Bulk operations support<br>
+                        • Export capabilities (PDF, Excel)<br>
+                        • Multi-tenant architecture<br>
+                        • Role-based access control<br>
+                        <br>
+                        <strong>Scheduling Engine:</strong><br>
+                        • Constraint-based optimization<br>
+                        • Machine learning predictions<br>
+                        • Fair rotation algorithms<br>
+                        • Compliance rule enforcement<br>
+                        <br>
+                        <strong>Integration Points:</strong><br>
+                        • EHR/EMR systems<br>
+                        • Payroll systems<br>
+                        • HR management systems<br>
+                        • Communication platforms
+                    </div>
+                </div>
+                
+                <div class="wireframe">
+                    <div class="wireframe-header">🔍 User Experience Flow</div>
+                    <div class="wireframe-content">
+                        <strong>Nurse Daily Flow:</strong><br>
+                        1. Open app → View today's shift<br>
+                        2. Clock in with location verification<br>
+                        3. Receive break reminders<br>
+                        4. Check notifications<br>
+                        5. Request swaps if needed<br>
+                        6. Clock out with shift summary<br>
+                        <br>
+                        <strong>Admin Weekly Flow:</strong><br>
+                        1. Review schedule coverage<br>
+                        2. Process swap requests<br>
+                        3. Handle compliance alerts<br>
+                        4. Adjust staffing as needed<br>
+                        5. Generate reports<br>
+                        6. Plan next week's schedule<br>
+                        <br>
+                        <strong>Emergency Scenarios:</strong><br>
+                        • Critical understaffing alerts<br>
+                        • Overtime violation warnings<br>
+                        • Break compliance monitoring<br>
+                        • Emergency schedule changes
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- COMPLIANCE & WORKFLOW -->
+        <div class="wireframe-section">
+            <h2 class="section-title">⚖️ Compliance & Workflow Automation</h2>
+            
+            <div class="wireframe-grid">
+                <div class="wireframe">
+                    <div class="wireframe-header">📋 Automated Compliance Checks</div>
+                    <div class="wireframe-content">
+                        <strong>Pre-Scheduling Validation:</strong><br>
+                        ✅ Maximum consecutive shifts<br>
+                        ✅ Weekly hour limits<br>
+                        ✅ Minimum rest periods<br>
+                        ✅ Skill/certification matching<br>
+                        ✅ Patient-to-nurse ratios<br>
+                        <br>
+                        <strong>Real-time Monitoring:</strong><br>
+                        • Break duration tracking<br>
+                        • Overtime threshold alerts<br>
+                        • Fatigue risk assessment<br>
+                        • Emergency coverage validation<br>
+                        <br>
+                        <strong>Violation Resolution:</strong><br>
+                        1. Automatic alert generation<br>
+                        2. Suggested corrective actions<br>
+                        3. Admin notification<br>
+                        4. Compliance report updates<br>
+                        5. Audit trail documentation
+                    </div>
+                </div>
+                
+                <div class="wireframe">
+                    <div class="wireframe-header">🔄 Workflow Automation</div>
+                    <div class="wireframe-content">
+                        <strong>Smart Scheduling:</strong><br>
+                        • AI-powered shift assignment<br>
+                        • Fair rotation enforcement<br>
+                        • Skill-based matching<br>
+                        • Preference consideration<br>
+                        • Historical pattern analysis<br>
+                        <br>
+                        <strong>Request Processing:</strong><br>
+                        • Auto-approval for simple swaps<br>
+                        • Compliance pre-checks<br>
+                        • Manager notification workflows<br>
+                        • Deadline enforcement<br>
+                        <br>
+                        <strong>Communication Automation:</strong><br>
+                        • Schedule change notifications<br>
+                        • Reminder systems<br>
+                        • Emergency broadcast alerts<br>
+                        • Escalation procedures
+                    </div>
+                </div>
+                
+                <div class="wireframe">
+                    <div class="wireframe-header">📊 Predictive Analytics</div>
+                    <div class="wireframe-content">
+                        <strong>Staffing Predictions:</strong><br>
+                        • Patient acuity forecasting<br>
+                        • Seasonal demand patterns<br>
+                        • Absence probability models<br>
+                        • Emergency staffing needs<br>
+                        <br>
+                        <strong>Risk Assessment:</strong><br>
+                        • Fatigue scoring algorithms<br>
+                        • Burnout risk indicators<br>
+                        • Turnover prediction models<br>
+                        • Compliance violation trends<br>
+                        <br>
+                        <strong>Optimization Features:</strong><br>
+                        • Cost-effective scheduling<br>
+                        • Workload balancing<br>
+                        • Satisfaction optimization<br>
+                        • Resource utilization<br>
+                        <br>
+                        <strong>Machine Learning Models:</strong><br>
+                        • Demand forecasting (LSTM)<br>
+                        • Preference learning (Collaborative filtering)<br>
+                        • Risk prediction (Random Forest)<br>
+                        • Schedule optimization (Genetic algorithms)
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- DATA MODELS -->
+        <div class="wireframe-section">
+            <h2 class="section-title">🗄️ Key Data Models & Relationships</h2>
+            <div class="card">
+                <strong>Core Entities:</strong><br>
+                <br>
+                <strong>User/Nurse:</strong><br>
+                • ID, name, email, phone<br>
+                • Skills, certifications, experience level<br>
+                • Department, role, employment status<br>
+                • Preferences, availability patterns<br>
+                • Compliance history, performance metrics<br>
+                <br>
+                <strong>Schedule:</strong><br>
+                • Period (weekly/monthly), department<br>
+                • Generated date, status, approval chain<br>
+                • Associate
